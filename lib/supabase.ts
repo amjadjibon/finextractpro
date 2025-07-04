@@ -1,44 +1,38 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
 /**
- * ---------------
- *  Browser client
- * ---------------
- * Returned with `getSupabaseClient()`.
- * • Instantiated lazily so that _no_ Supabase code executes during
- *   `next build`, preventing “supabaseUrl is required” errors that occur
- *   when env-vars aren’t present in the build environment.
+ * Lazy-instantiate the *browser* client the first time it’s needed.
+ * Keeps `createClient()` from running during `next build`, which
+ * prevents “supabaseUrl is required” errors for pages like `_not-found`.
  */
-let browserClient: SupabaseClient | null = null
+let supabaseBrowserClient: SupabaseClient | null = null
 
 export function getSupabaseClient(): SupabaseClient {
-  if (browserClient) return browserClient
+  if (supabaseBrowserClient) return supabaseBrowserClient
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!url || !anon) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY")
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Missing Supabase env vars.")
   }
-  browserClient = createClient(url, anon)
-  return browserClient
+
+  supabaseBrowserClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  return supabaseBrowserClient
 }
 
 /**
- * ----------------
- *  Server-side API
- * ----------------
- * Exported as `createServerClient` (Vercel build script expects this name).
- * Use inside Route Handlers / Server Actions only.
+ * createServerClient() — named export required by the build output.
+ * This helper can be used inside Route Handlers / Server Actions.
+ * It is *also* completely lazy, so importing the function is safe
+ * during the static generation phase.
  */
-export function createServerClient(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY
+import type { cookies } from "next/headers"
+import { createServerClient as _createServerClient } from "@supabase/ssr"
 
-  if (!url || !serviceRole) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
+export function createServerClient(cookieStore: ReturnType<typeof cookies>) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Missing Supabase env vars.")
   }
-  return createClient(url, serviceRole, {
-    auth: { persistSession: false, autoRefreshToken: false },
+
+  return _createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+    cookies: { get: cookieStore.get, set: cookieStore.set, remove: cookieStore.delete },
   })
 }
