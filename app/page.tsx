@@ -89,19 +89,23 @@ export default function LandingPage() {
             <Link href="#roi" className="text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium">
               ROI Calculator
             </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white bg-transparent transition-all duration-300"
-            >
-              Sign In
-            </Button>
-            <Button
-              size="sm"
-              className="bg-blue-900 hover:bg-blue-800 transition-all duration-300 shadow-md hover:shadow-lg"
-            >
-              Start Free Trial
-            </Button>
+            <Link href="/auth/signin">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white bg-transparent transition-all duration-300"
+              >
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/auth/signup">
+              <Button
+                size="sm"
+                className="bg-blue-900 hover:bg-blue-800 transition-all duration-300 shadow-md hover:shadow-lg"
+              >
+                Start Free Trial
+              </Button>
+            </Link>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -145,16 +149,20 @@ export default function LandingPage() {
                 ROI Calculator
               </Link>
               <div className="flex flex-col space-y-2 pt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white bg-transparent"
-                >
-                  Sign In
-                </Button>
-                <Button size="sm" className="bg-blue-900 hover:bg-blue-800">
-                  Start Free Trial
-                </Button>
+                <Link href="/auth/signin">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white bg-transparent"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button size="sm" className="w-full bg-blue-900 hover:bg-blue-800">
+                    Start Free Trial
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

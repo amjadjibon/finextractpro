@@ -156,7 +156,68 @@ export default function CreateTemplatePage() {
                   <div className="space-y-4">
                     {fields.map((field) => (
                       <div key={field.id} className="border rounded-lg p-4">
-                        <div className="grid grid-cols-12 gap-4 items-end">
+                        {/* Mobile/Tablet Layout */}
+                        <div className="block lg:hidden space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-sm">Field {field.id}</h4>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeField(field.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor={`field-name-${field.id}`}>Field Name</Label>
+                              <Input
+                                id={`field-name-${field.id}`}
+                                value={field.name}
+                                onChange={(e) => updateField(field.id, "name", e.target.value)}
+                                placeholder="Field name"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`field-type-${field.id}`}>Type</Label>
+                              <Select
+                                value={field.type}
+                                onValueChange={(value) => updateField(field.id, "type", value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {fieldTypes.map((type) => (
+                                    <SelectItem key={type.value} value={type.value}>
+                                      {type.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor={`field-validation-${field.id}`}>Validation Rules</Label>
+                            <Input
+                              id={`field-validation-${field.id}`}
+                              value={field.validation}
+                              onChange={(e) => updateField(field.id, "validation", e.target.value)}
+                              placeholder="e.g., Required, Min 3 characters"
+                            />
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              checked={field.required}
+                              onCheckedChange={(checked) => updateField(field.id, "required", checked)}
+                            />
+                            <Label className="text-sm">Required Field</Label>
+                          </div>
+                        </div>
+
+                        {/* Desktop Layout */}
+                        <div className="hidden lg:grid lg:grid-cols-12 gap-4 items-end">
                           <div className="col-span-3">
                             <Label htmlFor={`field-name-${field.id}`}>Field Name</Label>
                             <Input
