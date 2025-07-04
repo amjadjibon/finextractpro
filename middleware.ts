@@ -1,23 +1,34 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { getToken } from "next-auth/jwt"
+import { createServerClient } from "@/lib/supabase"
+import { cookies } from "next/headers"
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET || "dev-secret",
-  })
+  try {
+    const supabase = await createServerClient(cookies())
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    const isAuth = Boolean(session?.user)
+    const { pathname } = req.nextUrl
 
-  const isAuth = Boolean(token)
-  const { pathname } = req.nextUrl
+    if (pathname.startsWith("/dashboard") && !isAuth) {
+      const signInUrl = new URL("/auth/signin", req.url)
+      signInUrl.searchParams.set("callbackUrl", pathname)
+      return NextResponse.redirect(signInUrl)
+    }
 
-  if (pathname.startsWith("/dashboard") && !isAuth) {
-    const signInUrl = new URL("/auth/signin", req.url)
-    signInUrl.searchParams.set("callbackUrl", pathname)
-    return NextResponse.redirect(signInUrl)
+    return NextResponse.next()
+  } catch (error) {
+    console.error("Middleware error:", error)
+    // If there's an error, redirect to sign-in for protected routes
+    const { pathname } = req.nextUrl
+    if (pathname.startsWith("/dashboard")) {
+      const signInUrl = new URL("/auth/signin", req.url)
+      signInUrl.searchParams.set("callbackUrl", pathname)
+      return NextResponse.redirect(signInUrl)
+    }
+    return NextResponse.next()
   }
-
-  return NextResponse.next()
 }
 
 export const config = {

@@ -1,5 +1,6 @@
 import type { NextAuthOptions } from "next-auth"
 import EmailProvider from "next-auth/providers/email"
+import GoogleProvider from "next-auth/providers/google"
 import { SupabaseAdapter } from "@auth/supabase-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
 
@@ -18,6 +19,10 @@ const adapter =
 export const authOptions: NextAuthOptions = {
   adapter,
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     EmailProvider({
       server: {
         host: process.env.EMAIL_SERVER_HOST,
@@ -40,7 +45,6 @@ export const authOptions: NextAuthOptions = {
   ],
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET || "dev-secret",
-  trustHost: true,
   pages: {
     signIn: "/auth/signin",
   },

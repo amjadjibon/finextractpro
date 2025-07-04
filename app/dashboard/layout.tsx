@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
-import { useSession, signOut } from "next-auth/react"
+import { useState } from "react"
+import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -32,21 +32,13 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession()
+  const { user, loading, signOut, isAuthenticated } = useAuth()
   const router = useRouter()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const pathname = usePathname()
 
-  // Redirect to signin if not authenticated
-  useEffect(() => {
-    if (status === "loading") return // Still loading
-    if (!session) {
-      router.push("/auth/signin")
-    }
-  }, [session, status, router])
-
   // Show loading state while checking authentication
-  if (status === "loading") {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -60,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // Don't render if not authenticated
-  if (!session) {
+  if (!isAuthenticated) {
     return null
   }
 
@@ -100,7 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/" })
+    await signOut()
   }
 
   const getUserInitials = (name: string) => {
@@ -144,16 +136,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={session.user?.image || ""} alt={session.user?.name || ""} />
-                      <AvatarFallback>{session.user?.name ? getUserInitials(session.user.name) : "U"}</AvatarFallback>
+                      <AvatarImage src={user?.user_metadata?.avatar_url || ""} alt={user?.user_metadata?.full_name || user?.email || ""} />
+                      <AvatarFallback>{user?.user_metadata?.full_name ? getUserInitials(user.user_metadata.full_name) : user?.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{session.user?.name || "User"}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{session.user?.email}</p>
+                      <p className="text-sm font-medium leading-none">{user?.user_metadata?.full_name || "User"}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />

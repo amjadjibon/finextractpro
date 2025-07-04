@@ -27,12 +27,23 @@ export function getSupabaseClient(): SupabaseClient {
 import type { cookies } from "next/headers"
 import { createServerClient as _createServerClient } from "@supabase/ssr"
 
-export function createServerClient(cookieStore: ReturnType<typeof cookies>) {
+export async function createServerClient(cookieStore: ReturnType<typeof cookies>) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     throw new Error("Missing Supabase env vars.")
   }
 
+  const cookieStoreInstance = await cookieStore
+
   return _createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
-    cookies: { get: cookieStore.get, set: cookieStore.set, remove: cookieStore.delete },
+    cookies: {
+      getAll() {
+        return cookieStoreInstance.getAll()
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStoreInstance.set(name, value, options)
+        })
+      },
+    },
   })
 }

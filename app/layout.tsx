@@ -7,7 +7,7 @@ export const metadata = {
     generator: 'v0.dev'
 }
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
