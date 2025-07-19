@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center mx-auto mb-4">
+          <div className="w-8 h-8 bg-linear-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center mx-auto mb-4">
             <FileText className="w-5 h-5 text-white" />
           </div>
           <p className="text-gray-600">Loading...</p>
@@ -119,7 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Menu className="w-6 h-6" />
               </button>
               <div className="flex items-center space-x-3 ml-2 lg:ml-0">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-linear-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-xl font-bold text-gray-900">FinExtractPro</span>
@@ -207,7 +207,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       }`}
                       title={sidebarCollapsed ? item.name : undefined}
                     >
-                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      <Icon className="w-5 h-5 shrink-0" />
                       {!sidebarCollapsed && <span className="ml-3">{item.name}</span>}
                     </Link>
                   </li>

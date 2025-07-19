@@ -60,10 +60,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white/95 backdrop-blur-sm sticky top-0 z-50 transition-all duration-300">
+      <header className="border-b border-gray-200 bg-white/95 backdrop-blur-xs sticky top-0 z-50 transition-all duration-300">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center shadow-md">
+            <div className="w-8 h-8 bg-linear-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center shadow-md">
               <FileText className="w-5 h-5 text-white" />
             </div>
             <span className="text-lg font-bold text-gray-900 tracking-tight">FinExtractPro</span>
@@ -170,7 +170,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-16 lg:py-24 bg-gradient-to-br from-blue-50 via-white to-gray-50 relative overflow-hidden">
+      <section className="py-16 lg:py-24 bg-linear-to-br from-blue-50 via-white to-gray-50 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="container mx-auto px-4 relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -286,13 +286,13 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-8 duration-1000 delay-300">
             {/* Video Demo Placeholder */}
             <div className="relative">
-              <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl p-2 relative overflow-hidden group cursor-pointer hover:shadow-3xl transition-all duration-500">
-                <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-16 h-80 flex items-center justify-center relative">
+              <div className="bg-linear-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl p-2 relative overflow-hidden group cursor-pointer hover:shadow-3xl transition-all duration-500">
+                <div className="bg-linear-to-br from-gray-800 to-gray-900 rounded-xl p-16 h-80 flex items-center justify-center relative">
                   <div className="absolute inset-0 bg-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
                   {/* Play Button */}
                   <div className="relative z-10 flex flex-col items-center space-y-4">
-                    <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 group-hover:scale-110">
+                    <div className="w-20 h-20 bg-white/20 backdrop-blur-xs rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 group-hover:scale-110">
                       <PlayCircle className="w-12 h-12 text-white group-hover:text-blue-300 transition-colors duration-300" />
                     </div>
                     <div className="text-center">
@@ -477,7 +477,7 @@ export default function LandingPage() {
       {/* ROI Calculator Section */}
       <section
         id="roi"
-        className="py-16 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white relative overflow-hidden"
+        className="py-16 bg-linear-to-br from-blue-900 via-blue-800 to-blue-900 text-white relative overflow-hidden"
       >
         <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
         <div className="container mx-auto px-4 relative">
@@ -488,7 +488,7 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="max-w-5xl mx-auto">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 shadow-xl animate-in slide-in-from-bottom-8 duration-1000">
+            <Card className="bg-white/10 backdrop-blur-xs border-white/20 shadow-xl animate-in slide-in-from-bottom-8 duration-1000">
               <CardContent className="p-6 lg:p-8">
                 <div className="grid lg:grid-cols-2 gap-8">
                   <div className="space-y-6">
@@ -733,7 +733,7 @@ export default function LandingPage() {
                 <CardContent className="space-y-3">
                   {plan.features.map((feature, featureIndex) => (
                     <div key={featureIndex} className="flex items-center">
-                      <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                      <Check className="w-4 h-4 text-green-500 mr-2 shrink-0" />
                       <span className="text-sm text-gray-600">{feature}</span>
                     </div>
                   ))}
