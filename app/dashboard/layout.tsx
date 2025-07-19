@@ -2,8 +2,6 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useAuth } from "@/hooks/use-auth"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -25,36 +23,14 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
-  LogOut,
   User,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, signOut, isAuthenticated } = useAuth()
-  const router = useRouter()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const pathname = usePathname()
-
-  // Show loading state while checking authentication
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-linear-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Don't render if not authenticated
-  if (!isAuthenticated) {
-    return null
-  }
 
   const navigation = [
     {
@@ -91,18 +67,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return pathname.startsWith(href)
   }
 
-  const handleSignOut = async () => {
-    await signOut()
-  }
-
-  const getUserInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -136,16 +100,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.user_metadata?.avatar_url || ""} alt={user?.user_metadata?.full_name || user?.email || ""} />
-                      <AvatarFallback>{user?.user_metadata?.full_name ? getUserInitials(user.user_metadata.full_name) : user?.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                      <AvatarImage src="" alt="User" />
+                      <AvatarFallback>U</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.user_metadata?.full_name || "User"}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                      <p className="text-sm font-medium leading-none">User</p>
+                      <p className="text-xs leading-none text-muted-foreground">user@example.com</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -156,11 +120,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <DropdownMenuItem>
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

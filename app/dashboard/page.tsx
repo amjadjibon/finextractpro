@@ -2,8 +2,6 @@
    ORIGINAL DASHBOARD IMPLEMENTATION (CLIENT)
 ---------------------------------------------*/
 "use client"
-
-import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,7 +19,6 @@ import {
 import Link from "next/link"
 
 export default function Dashboard() {
-  const { user } = useAuth()
 
   // Mock data - replace with real data from your API
   const stats = {
@@ -87,7 +84,7 @@ export default function Dashboard() {
       {/* Welcome Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}!
+          Welcome back, User!
         </h1>
         <p className="text-gray-600 mt-2">
           Here's what's happening with your financial documents today.
