@@ -42,8 +42,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 bg-linear-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-linear-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-5 h-5 text-primary-foreground" />
           </div>
           <p className="text-gray-600">Loading...</p>
         </div>
@@ -119,8 +119,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Menu className="w-6 h-6" />
               </button>
               <div className="flex items-center space-x-3 ml-2 lg:ml-0">
-                <div className="w-8 h-8 bg-linear-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 bg-linear-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <span className="text-xl font-bold text-gray-900">FinExtractPro</span>
               </div>
@@ -202,7 +202,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       href={item.href}
                       className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         isActive(item.href)
-                          ? "bg-blue-100 text-blue-900"
+                          ? "bg-primary/10 text-primary"
                           : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                       }`}
                       title={sidebarCollapsed ? item.name : undefined}

@@ -146,7 +146,7 @@ export default function ProcessingResults() {
                 <div className="space-y-6">
                   {/* Header with highlighted extraction */}
                   <div className="text-center border-b pb-4">
-                    <div className="border-2 border-blue-500 bg-blue-50 p-2 inline-block">
+                    <div className="border-2 border-primary bg-primary/5 p-2 inline-block">
                       <h2 className="text-2xl font-bold">Q3 FINANCIAL REPORT 2024</h2>
                       <p className="text-gray-600">ABC Corp</p>
                     </div>
@@ -154,7 +154,7 @@ export default function ProcessingResults() {
 
                   {/* Financial Summary */}
                   <div className="grid grid-cols-2 gap-6">
-                    <div className="border-2 border-blue-500 bg-blue-50 p-4">
+                    <div className="border-2 border-primary bg-primary/5 p-4">
                       <h3 className="font-semibold mb-3">Revenue Summary</h3>
                       <div className="space-y-2">
                         <div className="flex justify-between">
@@ -172,7 +172,7 @@ export default function ProcessingResults() {
                       </div>
                     </div>
 
-                    <div className="border-2 border-blue-500 bg-blue-50 p-4">
+                    <div className="border-2 border-primary bg-primary/5 p-4">
                       <h3 className="font-semibold mb-3">Balance Sheet</h3>
                       <div className="space-y-2">
                         <div className="flex justify-between">
@@ -192,7 +192,7 @@ export default function ProcessingResults() {
                   </div>
 
                   {/* Table with highlighted extraction */}
-                  <div className="border-2 border-blue-500 bg-blue-50 p-4">
+                  <div className="border-2 border-primary bg-primary/5 p-4">
                     <h3 className="font-semibold mb-3">Quarterly Performance</h3>
                     <table className="w-full text-sm">
                       <thead>
@@ -443,7 +443,7 @@ export default function ProcessingResults() {
           {/* Bottom Actions */}
           <div className="border-t border-gray-200 p-6 bg-gray-50">
             <div className="flex flex-wrap gap-3">
-              <Button className="bg-blue-900 hover:bg-blue-800">
+              <Button className="bg-primary hover:bg-primary/90">
                 <Save className="w-4 h-4 mr-2" />
                 Save as Template
               </Button>

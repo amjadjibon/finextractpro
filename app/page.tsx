@@ -63,37 +63,37 @@ export default function LandingPage() {
       <header className="border-b border-gray-200 bg-white/95 backdrop-blur-xs sticky top-0 z-50 transition-all duration-300">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-linear-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center shadow-md">
-              <FileText className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-linear-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-md">
+              <FileText className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="text-lg font-bold text-gray-900 tracking-tight">FinExtractPro</span>
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-6">
-            <Link href="#demo" className="text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium">
+            <Link href="#demo" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">
               Demo
             </Link>
-            <Link href="#features" className="text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium">
+            <Link href="#features" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">
               Features
             </Link>
-            <Link href="#pricing" className="text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium">
+            <Link href="#pricing" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">
               Pricing
             </Link>
             <Link
               href="#testimonials"
-              className="text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium"
+              className="text-sm text-gray-600 hover:text-primary transition-colors font-medium"
             >
               Testimonials
             </Link>
-            <Link href="#roi" className="text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium">
+            <Link href="#roi" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">
               ROI Calculator
             </Link>
             <Link href="/auth/signin">
               <Button
                 variant="outline"
                 size="sm"
-                className="border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white bg-transparent transition-all duration-300"
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground bg-transparent transition-all duration-300"
               >
                 Sign In
               </Button>
@@ -101,7 +101,7 @@ export default function LandingPage() {
             <Link href="/auth/signup">
               <Button
                 size="sm"
-                className="bg-blue-900 hover:bg-blue-800 transition-all duration-300 shadow-md hover:shadow-lg"
+                className="bg-primary hover:bg-primary/90 transition-all duration-300 shadow-md hover:shadow-lg"
               >
                 Start Free Trial
               </Button>
@@ -120,49 +120,49 @@ export default function LandingPage() {
             <div className="container mx-auto px-4 space-y-3">
               <Link
                 href="#demo"
-                className="block text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium"
+                className="block text-sm text-gray-600 hover:text-primary transition-colors font-medium"
               >
                 Demo
               </Link>
               <Link
                 href="#features"
-                className="block text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium"
+                className="block text-sm text-gray-600 hover:text-primary transition-colors font-medium"
               >
                 Features
               </Link>
               <Link
                 href="#pricing"
-                className="block text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium"
+                className="block text-sm text-gray-600 hover:text-primary transition-colors font-medium"
               >
                 Pricing
               </Link>
               <Link
                 href="#testimonials"
-                className="block text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium"
+                className="block text-sm text-gray-600 hover:text-primary transition-colors font-medium"
               >
                 Testimonials
               </Link>
               <Link
                 href="#roi"
-                className="block text-sm text-gray-600 hover:text-blue-900 transition-colors font-medium"
+                className="block text-sm text-gray-600 hover:text-primary transition-colors font-medium"
               >
                 ROI Calculator
               </Link>
               <div className="flex flex-col space-y-2 pt-3">
-                <Link href="/auth/signin">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white bg-transparent"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/auth/signup">
-                  <Button size="sm" className="w-full bg-blue-900 hover:bg-blue-800">
-                    Start Free Trial
-                  </Button>
-                </Link>
+                                  <Link href="/auth/signin">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground bg-transparent"
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/auth/signup">
+                    <Button size="sm" className="w-full bg-primary hover:bg-primary/90">
+                      Start Free Trial
+                    </Button>
+                  </Link>
               </div>
             </div>
           </div>
@@ -170,33 +170,33 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-16 lg:py-24 bg-linear-to-br from-blue-50 via-white to-gray-50 relative overflow-hidden">
+      <section className="py-16 lg:py-24 bg-linear-to-br from-primary/5 via-white to-secondary/5 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="container mx-auto px-4 relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-in slide-in-from-left-8 duration-1000">
               <div className="space-y-4">
-                <Badge className="bg-blue-100 text-blue-900 hover:bg-blue-100 px-3 py-1 text-xs font-semibold">
+                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold">
                   🚀 AI-Powered Financial Data Extraction
                 </Badge>
                 <h1 className="text-3xl lg:text-5xl font-bold text-gray-900 leading-tight tracking-tight">
                   Stop Wasting Hours on{" "}
-                  <span className="text-blue-900 relative">
+                  <span className="text-primary relative">
                     Manual PDF
-                    <div className="absolute -bottom-1 left-0 right-0 h-1 bg-blue-200 rounded-full"></div>
+                    <div className="absolute -bottom-1 left-0 right-0 h-1 bg-primary/20 rounded-full"></div>
                   </span>{" "}
                   Data Entry
                 </h1>
                 <p className="text-lg lg:text-xl text-gray-600 leading-relaxed max-w-2xl">
                   AI-powered extraction of financial tables from complex PDFs with{" "}
-                  <span className="font-semibold text-blue-900">99% accuracy</span>. Process hundreds of documents in
+                  <span className="font-semibold text-primary">99% accuracy</span>. Process hundreds of documents in
                   minutes, not days.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   size="lg"
-                  className="bg-blue-900 hover:bg-blue-800 px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                  className="bg-primary hover:bg-primary/90 px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                 >
                   Start Free Trial
                   <ArrowRight className="ml-2 w-4 h-4" />
@@ -204,7 +204,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white px-6 py-3 bg-transparent transition-all duration-300 transform hover:-translate-y-1"
+                  className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground px-6 py-3 bg-transparent transition-all duration-300 transform hover:-translate-y-1"
                 >
                   <Play className="mr-2 w-4 h-4" />
                   Watch Demo
@@ -286,18 +286,18 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-8 duration-1000 delay-300">
             {/* Video Demo Placeholder */}
             <div className="relative">
-              <div className="bg-linear-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl p-2 relative overflow-hidden group cursor-pointer hover:shadow-3xl transition-all duration-500">
+                                <div className="bg-linear-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl p-2 relative overflow-hidden group cursor-pointer hover:shadow-3xl transition-all duration-500">
                 <div className="bg-linear-to-br from-gray-800 to-gray-900 rounded-xl p-16 h-80 flex items-center justify-center relative">
-                  <div className="absolute inset-0 bg-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
                   {/* Play Button */}
                   <div className="relative z-10 flex flex-col items-center space-y-4">
                     <div className="w-20 h-20 bg-white/20 backdrop-blur-xs rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 group-hover:scale-110">
-                      <PlayCircle className="w-12 h-12 text-white group-hover:text-blue-300 transition-colors duration-300" />
+                      <PlayCircle className="w-12 h-12 text-white group-hover:text-primary/80 transition-colors duration-300" />
                     </div>
                     <div className="text-center">
                       <div className="text-white text-xl font-semibold mb-2">Watch 2-Minute Demo</div>
-                      <div className="text-blue-200 text-sm">See how FinExtractPro processes financial documents</div>
+                      <div className="text-primary/60 text-sm">See how FinExtractPro processes financial documents</div>
                     </div>
                   </div>
 
@@ -314,15 +314,15 @@ export default function LandingPage() {
               {/* Video Stats */}
               <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-900 mb-1">2:15</div>
+                  <div className="text-2xl font-bold text-primary mb-1">2:15</div>
                   <div className="text-sm text-gray-600">Demo Duration</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-900 mb-1">99%</div>
+                  <div className="text-2xl font-bold text-primary mb-1">99%</div>
                   <div className="text-sm text-gray-600">Accuracy Rate</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-900 mb-1">3 min</div>
+                  <div className="text-2xl font-bold text-primary mb-1">3 min</div>
                   <div className="text-sm text-gray-600">Processing Time</div>
                 </div>
               </div>
@@ -334,7 +334,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
-                className="bg-blue-900 hover:bg-blue-800 px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="bg-primary hover:bg-primary/90 px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 Start Your Free Trial
                 <ArrowRight className="ml-2 w-4 h-4" />
@@ -342,7 +342,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white px-8 py-3 bg-transparent transition-all duration-300"
+                className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground px-8 py-3 bg-transparent transition-all duration-300"
               >
                 Schedule a Demo Call
               </Button>
@@ -460,8 +460,8 @@ export default function LandingPage() {
                 style={{ animationDelay: `${index * 150}ms` }}
               >
                 <CardHeader>
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-blue-900 transition-colors duration-300">
-                    <feature.icon className="w-6 h-6 text-blue-900 group-hover:text-white transition-colors duration-300" />
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary transition-colors duration-300">
+                    <feature.icon className="w-6 h-6 text-primary group-hover:text-primary-foreground transition-colors duration-300" />
                   </div>
                   <CardTitle className="text-lg text-gray-900 mb-2">{feature.title}</CardTitle>
                 </CardHeader>
@@ -477,34 +477,34 @@ export default function LandingPage() {
       {/* ROI Calculator Section */}
       <section
         id="roi"
-        className="py-16 bg-linear-to-br from-blue-900 via-blue-800 to-blue-900 text-white relative overflow-hidden"
+        className="py-16 bg-linear-to-br from-primary via-primary/90 to-primary text-white relative overflow-hidden"
       >
         <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
         <div className="container mx-auto px-4 relative">
           <div className="text-center mb-12 animate-in fade-in-50 duration-1000">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">Calculate Your ROI</h2>
-            <p className="text-lg text-blue-100 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg text-primary-foreground/80 max-w-3xl mx-auto leading-relaxed">
               See how much time and money you could save with FinExtractPro
             </p>
           </div>
           <div className="max-w-5xl mx-auto">
-            <Card className="bg-white/10 backdrop-blur-xs border-white/20 shadow-xl animate-in slide-in-from-bottom-8 duration-1000">
+            <Card className="bg-white/15 backdrop-blur-sm border-white/30 shadow-xl animate-in slide-in-from-bottom-8 duration-1000">
               <CardContent className="p-6 lg:p-8">
                 <div className="grid lg:grid-cols-2 gap-8">
                   <div className="space-y-6">
-                    <h3 className="text-xl font-bold mb-4">Your Current Situation</h3>
+                    <h3 className="text-xl font-bold mb-4 text-gray-900">Your Current Situation</h3>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium mb-2">Documents processed per month</label>
+                        <label className="block text-sm font-bold mb-2 text-gray-900">Documents processed per month</label>
                         <Input
                           type="number"
                           value={roiData.documents}
                           onChange={(e) => setRoiData({ ...roiData, documents: Number.parseInt(e.target.value) || 0 })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/60 py-2"
+                          className="bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 py-2 focus:bg-white focus:border-primary"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Hours per document (manual)</label>
+                        <label className="block text-sm font-bold mb-2 text-gray-900">Hours per document (manual)</label>
                         <Input
                           type="number"
                           step="0.1"
@@ -512,57 +512,57 @@ export default function LandingPage() {
                           onChange={(e) =>
                             setRoiData({ ...roiData, hoursPerDoc: Number.parseFloat(e.target.value) || 0 })
                           }
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/60 py-2"
+                          className="bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 py-2 focus:bg-white focus:border-primary"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Average hourly rate ($)</label>
+                        <label className="block text-sm font-bold mb-2 text-gray-900">Average hourly rate ($)</label>
                         <Input
                           type="number"
                           value={roiData.hourlyRate}
                           onChange={(e) => setRoiData({ ...roiData, hourlyRate: Number.parseInt(e.target.value) || 0 })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/60 py-2"
+                          className="bg-white/90 border-gray-300 text-gray-900 placeholder:text-gray-500 py-2 focus:bg-white focus:border-primary"
                         />
                       </div>
                     </div>
                   </div>
                   <div className="space-y-6">
-                    <h3 className="text-xl font-bold mb-4">Your Monthly Savings</h3>
-                    <div className="bg-white/10 rounded-xl p-6 space-y-4">
+                    <h3 className="text-xl font-bold mb-4 text-gray-900">Your Monthly Savings</h3>
+                    <div className="bg-white/20 rounded-xl p-6 space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-green-300 mb-1">{roi.timeSaved}</div>
-                          <div className="text-xs text-blue-100">Hours Saved</div>
+                          <div className="text-2xl font-bold text-gray-900 mb-1">{roi.timeSaved}</div>
+                          <div className="text-xs font-bold text-gray-800">Hours Saved</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-green-300 mb-1">
+                          <div className="text-2xl font-bold text-gray-900 mb-1">
                             ${roi.costSaved.toLocaleString()}
                           </div>
-                          <div className="text-xs text-blue-100">Cost Saved</div>
+                          <div className="text-xs font-bold text-gray-800">Cost Saved</div>
                         </div>
                       </div>
-                      <Separator className="bg-white/20" />
+                                              <Separator className="bg-gray-300" />
                       <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
+                        <div className="flex justify-between text-sm font-bold text-gray-900">
                           <span>Monthly cost savings:</span>
-                          <span className="font-semibold">${roi.costSaved.toLocaleString()}</span>
+                          <span className="font-bold text-gray-900">${roi.costSaved.toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between text-sm">
+                        <div className="flex justify-between text-sm font-bold text-gray-900">
                           <span>Software cost:</span>
-                          <span className="font-semibold">-$299</span>
+                          <span className="font-bold text-gray-900">-$299</span>
                         </div>
-                        <Separator className="bg-white/20" />
-                        <div className="flex justify-between text-lg font-bold">
+                        <Separator className="bg-gray-300" />
+                        <div className="flex justify-between text-lg font-bold text-gray-900">
                           <span>Net monthly savings:</span>
-                          <span className="text-green-300">${roi.netSavings.toLocaleString()}</span>
+                          <span className="text-gray-900">${roi.netSavings.toLocaleString()}</span>
                         </div>
-                        <div className="text-center text-xs text-blue-100 mt-3">
+                        <div className="text-center text-xs font-bold text-gray-800 mt-3">
                           Annual savings:{" "}
-                          <span className="font-bold text-green-300">${(roi.netSavings * 12).toLocaleString()}</span>
+                          <span className="font-bold text-gray-900">${(roi.netSavings * 12).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
-                    <Button size="lg" className="w-full bg-white text-blue-900 hover:bg-gray-100 py-3 shadow-lg">
+                    <Button size="lg" className="w-full bg-white text-primary hover:bg-gray-100 py-3 shadow-lg">
                       Start Saving Today
                       <ArrowRight className="ml-2 w-4 h-4" />
                     </Button>
@@ -711,13 +711,13 @@ export default function LandingPage() {
               <Card
                 key={index}
                 className={`hover:shadow-lg transition-all duration-500 transform hover:-translate-y-1 relative animate-in fade-in-50 duration-1000 ${
-                  plan.popular ? "border-blue-900 shadow-md scale-105" : ""
+                  plan.popular ? "border-primary shadow-md scale-105" : ""
                 }`}
                 style={{ animationDelay: `${index * 200}ms` }}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-blue-900 text-white px-3 py-1 text-xs font-semibold shadow-md">
+                    <Badge className="bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold shadow-md">
                       Most Popular
                     </Badge>
                   </div>
@@ -740,7 +740,7 @@ export default function LandingPage() {
                   <Button
                     className={`w-full mt-6 py-3 transition-all duration-300 ${
                       plan.popular
-                        ? "bg-blue-900 hover:bg-blue-800 shadow-md hover:shadow-lg"
+                        ? "bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg"
                         : "bg-gray-900 hover:bg-gray-800"
                     }`}
                   >
@@ -778,13 +778,13 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16">
+      <footer className="bg-slate-900 text-white py-16">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <span className="text-lg font-bold">FinExtractPro</span>
               </div>
@@ -793,13 +793,13 @@ export default function LandingPage() {
                 business.
               </p>
               <div className="flex space-x-3">
-                <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 cursor-pointer transition-colors">
+                <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary cursor-pointer transition-colors">
                   <Users className="w-4 h-4" />
                 </div>
-                <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 cursor-pointer transition-colors">
+                <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary cursor-pointer transition-colors">
                   <Building className="w-4 h-4" />
                 </div>
-                <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 cursor-pointer transition-colors">
+                <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary cursor-pointer transition-colors">
                   <Mail className="w-4 h-4" />
                 </div>
               </div>
@@ -808,27 +808,27 @@ export default function LandingPage() {
               <h3 className="font-semibold text-sm mb-4">Product</h3>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     Features
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     Pricing
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     API Documentation
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     Integrations
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     Security
                   </Link>
                 </li>
@@ -838,27 +838,27 @@ export default function LandingPage() {
               <h3 className="font-semibold text-sm mb-4">Company</h3>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     About Us
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     Blog
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     Careers
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     Press
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-white transition-colors">
+                  <Link href="#" className="hover:text-primary transition-colors">
                     Partners
                   </Link>
                 </li>
@@ -896,19 +896,19 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <Separator className="bg-gray-800 mb-6" />
+          <Separator className="bg-gray-700 mb-6" />
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-xs text-gray-400 mb-3 md:mb-0">
               © {new Date().getFullYear()} FinExtractPro. All rights reserved.
             </p>
             <div className="flex space-x-6">
-              <Link href="#" className="text-xs text-gray-400 hover:text-white transition-colors">
+              <Link href="#" className="text-xs text-gray-400 hover:text-primary transition-colors">
                 Privacy Policy
               </Link>
-              <Link href="#" className="text-xs text-gray-400 hover:text-white transition-colors">
+              <Link href="#" className="text-xs text-gray-400 hover:text-primary transition-colors">
                 Terms of Service
               </Link>
-              <Link href="#" className="text-xs text-gray-400 hover:text-white transition-colors">
+              <Link href="#" className="text-xs text-gray-400 hover:text-primary transition-colors">
                 Cookie Policy
               </Link>
             </div>

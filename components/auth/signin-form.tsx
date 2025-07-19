@@ -51,7 +51,7 @@ export function SignInForm() {
 
         <Button
           type="button"
-          className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground"
           onClick={handleGoogleSignIn}
           disabled={isLoading}
         >

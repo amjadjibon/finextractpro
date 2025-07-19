@@ -13,12 +13,12 @@ export default function SignUpPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-primary/5 via-white to-secondary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8 text-center">
         {/* Logo */}
         <div className="inline-flex items-center space-x-2">
-          <div className="w-10 h-10 bg-linear-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
-            <FileText className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 bg-linear-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+            <FileText className="w-6 h-6 text-primary-foreground" />
           </div>
           <span className="text-2xl font-bold text-gray-900">FinExtractPro</span>
         </div>

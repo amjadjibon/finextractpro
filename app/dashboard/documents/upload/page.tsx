@@ -120,7 +120,7 @@ export default function UploadDocumentsPage() {
                   {/* Drag and Drop Area */}
                   <div
                     className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                      dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
+                      dragActive ? "border-primary bg-primary/5" : "border-gray-300 hover:border-gray-400"
                     }`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
@@ -199,7 +199,7 @@ export default function UploadDocumentsPage() {
                   {/* Batch Upload Area */}
                   <div
                     className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                      dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
+                      dragActive ? "border-primary bg-primary/5" : "border-gray-300 hover:border-gray-400"
                     }`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
@@ -298,7 +298,7 @@ export default function UploadDocumentsPage() {
                 )}
 
                 <div className="flex space-x-3 mt-6">
-                  <Button onClick={handleUpload} disabled={processing} className="bg-blue-900 hover:bg-blue-800">
+                  <Button onClick={handleUpload} disabled={processing} className="bg-primary hover:bg-primary/90">
                     {processing ? (
                       <>
                         <Clock className="w-4 h-4 mr-2 animate-spin" />
@@ -361,7 +361,7 @@ export default function UploadDocumentsPage() {
                   <span className="text-sm">PDF documents</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <FileText className="w-4 h-4 text-blue-600" />
+                  <FileText className="w-4 h-4 text-primary" />
                   <span className="text-sm">PNG images</span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -373,11 +373,11 @@ export default function UploadDocumentsPage() {
                   <span className="text-sm">TIFF images</span>
                 </div>
               </div>
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-xs text-blue-800">
-                  <strong>Tip:</strong> For best results, ensure documents are clear and well-lit with minimal skew.
-                </p>
-              </div>
+                              <div className="mt-4 p-3 bg-primary/5 rounded-lg">
+                  <p className="text-xs text-primary">
+                    <strong>Tip:</strong> For best results, ensure documents are clear and well-lit with minimal skew.
+                  </p>
+                </div>
             </CardContent>
           </Card>
 
@@ -396,7 +396,7 @@ export default function UploadDocumentsPage() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <Clock className="w-4 h-4 text-blue-500" />
+                  <Clock className="w-4 h-4 text-primary" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">Bank_Statement.pdf</p>
                     <p className="text-xs text-gray-500">Processing...</p>

@@ -150,7 +150,7 @@ export default function Dashboard() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link href="/dashboard/documents/upload">
-              <Button className="w-full h-24 flex flex-col gap-2 bg-blue-600 hover:bg-blue-700">
+              <Button className="w-full h-24 flex flex-col gap-2 bg-primary hover:bg-primary/90">
                 <Upload className="w-6 h-6" />
                 Upload Documents
               </Button>

@@ -462,7 +462,7 @@ export default function CreateTemplatePage() {
               <CardTitle>Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full bg-blue-900 hover:bg-blue-800">
+              <Button className="w-full bg-primary hover:bg-primary/90">
                 <Save className="w-4 h-4 mr-2" />
                 Save Template
               </Button>

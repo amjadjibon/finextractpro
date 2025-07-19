@@ -162,17 +162,17 @@ export default function TemplateBuilder() {
                     <div>
                       <div className="space-y-2">
                         <div
-                          className={`inline-block p-1 border-2 border-blue-500 bg-blue-50 ${
-                            selectedField === "invoice-number" ? "ring-2 ring-blue-300" : ""
-                          }`}
+                                          className={`inline-block p-1 border-2 border-primary bg-primary/5 ${
+                  selectedField === "invoice-number" ? "ring-2 ring-primary/40" : ""
+                }`}
                         >
                           <strong>Invoice #:</strong> INV-2024-001
                         </div>
                         <br />
                         <div
-                          className={`inline-block p-1 border-2 border-blue-500 bg-blue-50 ${
-                            selectedField === "invoice-date" ? "ring-2 ring-blue-300" : ""
-                          }`}
+                                          className={`inline-block p-1 border-2 border-primary bg-primary/5 ${
+                  selectedField === "invoice-date" ? "ring-2 ring-primary/40" : ""
+                }`}
                         >
                           <strong>Date:</strong> 2024-01-15
                         </div>
@@ -182,9 +182,9 @@ export default function TemplateBuilder() {
 
                   {/* Line Items Table */}
                   <div
-                    className={`border-2 border-blue-500 bg-blue-50 p-2 ${
-                      selectedField === "line-items" ? "ring-2 ring-blue-300" : ""
-                    }`}
+                                    className={`border-2 border-primary bg-primary/5 p-2 ${
+                  selectedField === "line-items" ? "ring-2 ring-primary/40" : ""
+                }`}
                   >
                     <table className="w-full">
                       <thead>
@@ -215,9 +215,9 @@ export default function TemplateBuilder() {
                   {/* Total */}
                   <div className="text-right">
                     <div
-                      className={`inline-block p-1 border-2 border-blue-500 bg-blue-50 ${
-                        selectedField === "total-amount" ? "ring-2 ring-blue-300" : ""
-                      }`}
+                                      className={`inline-block p-1 border-2 border-primary bg-primary/5 ${
+                  selectedField === "total-amount" ? "ring-2 ring-primary/40" : ""
+                }`}
                     >
                       <strong>Total: $1,247.50</strong>
                     </div>
@@ -265,7 +265,7 @@ export default function TemplateBuilder() {
                   <Card
                     key={field.id}
                     className={`cursor-pointer transition-colors ${
-                      selectedField === field.id ? "ring-2 ring-blue-500 bg-blue-50" : "hover:bg-gray-50"
+                      selectedField === field.id ? "ring-2 ring-primary bg-primary/5" : "hover:bg-gray-50"
                     }`}
                     onClick={() => setSelectedField(field.id)}
                   >
@@ -358,7 +358,7 @@ export default function TemplateBuilder() {
                 <Save className="w-4 h-4 mr-2" />
                 Save Draft
               </Button>
-              <Button className="w-full bg-blue-900 hover:bg-blue-800">
+              <Button className="w-full bg-primary hover:bg-primary/90">
                 <Save className="w-4 h-4 mr-2" />
                 Save & Activate
               </Button>
