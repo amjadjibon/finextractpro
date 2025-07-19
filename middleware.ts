@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { createServerClient } from "@/lib/supabase"
-import { cookies } from "next/headers"
+import { getSessionServer } from "@/lib/auth"
 
 export async function middleware(req: NextRequest) {
   try {
-    const supabase = await createServerClient(cookies())
-    const { data: { session } } = await supabase.auth.getSession()
-    
+    const session = await getSessionServer()
     const isAuth = Boolean(session?.user)
     const { pathname } = req.nextUrl
 
@@ -32,5 +29,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*"]
 }

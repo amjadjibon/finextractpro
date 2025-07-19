@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { getSupabaseClient } from '@/lib/supabase'
+import { signOut } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 
 export function useAuth() {
@@ -38,14 +39,18 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [supabase.auth, router])
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
   }
 
   return {
     user,
     loading,
-    signOut,
+    signOut: handleSignOut,
     isAuthenticated: !!user
   }
 }

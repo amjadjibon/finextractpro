@@ -9,8 +9,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "@auth/core": "0.40.0",
-    "@auth/supabase-adapter": "1.10.0",
     "@hookform/resolvers": "5.1.1",
     "@radix-ui/react-accordion": "1.2.11",
     "@radix-ui/react-alert-dialog": "1.1.14",
@@ -51,9 +49,7 @@
     "input-otp": "1.4.2",
     "lucide-react": "0.525.0",
     "next": "15.2.4",
-    "next-auth": "latest",
     "next-themes": "0.4.6",
-    "nodemailer": "latest",
     "react": "^19",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
