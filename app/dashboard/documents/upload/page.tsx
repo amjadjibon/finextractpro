@@ -20,6 +20,11 @@ export default function UploadDocumentsPage() {
   const [files, setFiles] = useState<File[]>([])
   const [processing, setProcessing] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [selectedDocumentType, setSelectedDocumentType] = useState("")
+  const [selectedTemplate, setSelectedTemplate] = useState("")
+  const [description, setDescription] = useState("")
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
+  const [uploadErrors, setUploadErrors] = useState<string[]>([])
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -36,15 +41,19 @@ export default function UploadDocumentsPage() {
     e.stopPropagation()
     setDragActive(false)
 
+    console.log('Files dropped:', e.dataTransfer.files)
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const newFiles = Array.from(e.dataTransfer.files)
+      console.log('Processing dropped files:', newFiles)
       setFiles((prev) => [...prev, ...newFiles])
     }
   }, [])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('File selection triggered', e.target.files)
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
+      console.log('Selected files:', newFiles)
       setFiles((prev) => [...prev, ...newFiles])
     }
   }
@@ -53,35 +62,108 @@ export default function UploadDocumentsPage() {
     setFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleUpload = async () => {
-    setProcessing(true)
-    setUploadProgress(0)
-
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setProcessing(false)
-          return 100
-        }
-        return prev + 10
-      })
-    }, 500)
-  }
-
   const getFileIcon = (fileName: string) => {
-    const extension = fileName.split(".").pop()?.toLowerCase()
-    return <FileText className="w-5 h-5 text-blue-600" />
+    const extension = fileName.split('.').pop()?.toLowerCase()
+    switch (extension) {
+      case 'pdf':
+        return <FileText className="w-5 h-5 text-red-600" />
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return <FileText className="w-5 h-5 text-blue-600" />
+      case 'tiff':
+      case 'tif':
+        return <FileText className="w-5 h-5 text-purple-600" />
+      default:
+        return <FileText className="w-5 h-5 text-gray-600" />
+    }
   }
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes"
+    if (bytes === 0) return '0 Bytes'
     const k = 1024
-    const sizes = ["Bytes", "KB", "MB", "GB"]
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
+
+  const handleUpload = async () => {
+    if (files.length === 0) {
+      alert("Please select files to upload")
+      return
+    }
+
+    setProcessing(true)
+    setUploadProgress(0)
+
+    try {
+      const uploadPromises = files.map(async (file, index) => {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('documentType', selectedDocumentType)
+        formData.append('template', selectedTemplate)
+        formData.append('description', description)
+
+        // Simulate API call - replace with actual API endpoint
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            // Simulate progress
+            const progressIncrement = 100 / files.length
+            setUploadProgress((prev) => Math.min(prev + progressIncrement, 100))
+            
+            // Simulate random success/failure for demo
+            if (Math.random() > 0.1) {
+              resolve({
+                id: Date.now() + index,
+                name: file.name,
+                status: 'completed',
+                size: file.size,
+                uploadedAt: new Date().toISOString()
+              })
+            } else {
+              reject(new Error(`Failed to upload ${file.name}`))
+            }
+          }, 1000 + Math.random() * 2000)
+        })
+      })
+
+      const results = await Promise.allSettled(uploadPromises)
+      
+      // Handle results
+      const successful = results.filter(r => r.status === 'fulfilled').length
+      const failed = results.filter(r => r.status === 'rejected').length
+
+      if (successful > 0) {
+        setUploadedFiles(prev => [
+          ...prev,
+          ...results
+            .filter(r => r.status === 'fulfilled')
+            .map(r => (r as PromiseFulfilledResult<any>).value)
+        ])
+      }
+
+      if (failed > 0) {
+        setUploadErrors(results
+          .filter(r => r.status === 'rejected')
+          .map(r => (r as PromiseRejectedResult).reason.message)
+        )
+      }
+
+      // Show success message
+      alert(`Upload completed! ${successful} successful, ${failed} failed`)
+      
+    } catch (error) {
+      console.error('Upload failed:', error)
+      alert('Upload failed. Please try again.')
+    } finally {
+      setProcessing(false)
+      setUploadProgress(100)
+      // Clear files after upload
+      setFiles([])
+    }
+  }
+
+
 
   return (
     <div className="p-6">
@@ -119,13 +201,14 @@ export default function UploadDocumentsPage() {
                 <CardContent className="space-y-6">
                   {/* Drag and Drop Area */}
                   <div
-                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
                       dragActive ? "border-primary bg-primary/5" : "border-gray-300 hover:border-gray-400"
                     }`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
                     onDrop={handleDrop}
+                    onClick={() => document.getElementById('file-upload')?.click()}
                   >
                     <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -140,10 +223,11 @@ export default function UploadDocumentsPage() {
                       className="hidden"
                       id="file-upload"
                     />
-                    <label htmlFor="file-upload">
-                      <Button variant="outline" className="cursor-pointer bg-transparent">
-                        Choose Files
-                      </Button>
+                    <label 
+                      htmlFor="file-upload"
+                      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer"
+                    >
+                      Choose Files
                     </label>
                   </div>
 
@@ -151,7 +235,7 @@ export default function UploadDocumentsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="document-type">Document Type</Label>
-                      <Select>
+                      <Select value={selectedDocumentType} onValueChange={setSelectedDocumentType}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
@@ -167,7 +251,7 @@ export default function UploadDocumentsPage() {
                     </div>
                     <div>
                       <Label htmlFor="template">Processing Template</Label>
-                      <Select>
+                      <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                         <SelectTrigger>
                           <SelectValue placeholder="Auto-detect" />
                         </SelectTrigger>
@@ -183,7 +267,13 @@ export default function UploadDocumentsPage() {
 
                   <div>
                     <Label htmlFor="description">Description (Optional)</Label>
-                    <Textarea id="description" placeholder="Add notes about this document..." className="mt-1" />
+                    <Textarea 
+                      id="description" 
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Add notes about this document..." 
+                      className="mt-1" 
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -198,13 +288,14 @@ export default function UploadDocumentsPage() {
                 <CardContent className="space-y-6">
                   {/* Batch Upload Area */}
                   <div
-                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
                       dragActive ? "border-primary bg-primary/5" : "border-gray-300 hover:border-gray-400"
                     }`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
                     onDrop={handleDrop}
+                    onClick={() => document.getElementById('batch-upload')?.click()}
                   >
                     <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Drop multiple documents here</h3>
@@ -217,10 +308,11 @@ export default function UploadDocumentsPage() {
                       className="hidden"
                       id="batch-upload"
                     />
-                    <label htmlFor="batch-upload">
-                      <Button variant="outline" className="cursor-pointer bg-transparent">
-                        Choose Multiple Files
-                      </Button>
+                    <label 
+                      htmlFor="batch-upload"
+                      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer"
+                    >
+                      Choose Multiple Files
                     </label>
                   </div>
 
@@ -228,7 +320,7 @@ export default function UploadDocumentsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="batch-template">Default Template</Label>
-                      <Select>
+                      <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                         <SelectTrigger>
                           <SelectValue placeholder="Auto-detect for all" />
                         </SelectTrigger>
@@ -315,6 +407,68 @@ export default function UploadDocumentsPage() {
                     Clear All
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Upload Results */}
+          {uploadedFiles.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-green-600">
+                  <CheckCircle className="w-5 h-5 inline mr-2" />
+                  Successfully Uploaded ({uploadedFiles.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
+                      <div className="flex items-center space-x-3">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <div>
+                          <p className="font-medium text-sm">{file.name}</p>
+                          <p className="text-xs text-gray-500">Uploaded successfully</p>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/dashboard/documents/${file.id}`}>
+                          View Document
+                        </Link>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Upload Errors */}
+          {uploadErrors.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-red-600">
+                  <AlertCircle className="w-5 h-5 inline mr-2" />
+                  Upload Errors ({uploadErrors.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {uploadErrors.map((error, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg bg-red-50">
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                  ))}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                  onClick={() => setUploadErrors([])}
+                >
+                  Clear Errors
+                </Button>
               </CardContent>
             </Card>
           )}
