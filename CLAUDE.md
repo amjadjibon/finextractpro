@@ -27,29 +27,27 @@ This project uses **Bun** as the package manager. Use `bun install` for dependen
 ### Project Structure
 
 ```
-app/                    # Next.js App Router pages
-├── auth/              # Authentication pages (signin, signup)
-├── dashboard/         # Protected dashboard area
-│   ├── documents/     # Document management
-│   ├── templates/     # Template management
-│   ├── exports/       # Export functionality
-│   └── settings/      # User settings
-├── layout.tsx         # Root layout with AuthProvider
-└── page.tsx           # Landing page
-
-components/
-├── auth/              # Authentication components (signin-form, signup-form)
-├── providers/         # React context providers (auth-provider)
-└── ui/                # shadcn/ui component library
-
-lib/
-├── supabase/
-│   ├── client.ts      # Browser client for client components
-│   ├── server.ts      # Server client for server components
-│   └── middleware.ts  # Middleware utility for session management
-└── utils.ts           # General utilities
-
-middleware.ts          # Next.js middleware for route protection
+src/                   # Source directory
+├── app/               # Next.js App Router pages
+│   ├── auth/          # Authentication pages (signin, signup)
+│   ├── dashboard/     # Protected dashboard area
+│   │   ├── documents/ # Document management
+│   │   ├── templates/ # Template management
+│   │   ├── exports/   # Export functionality
+│   │   └── settings/  # User settings
+│   ├── layout.tsx     # Root layout with AuthProvider
+│   └── page.tsx       # Landing page
+├── components/
+│   ├── auth/          # Authentication components (signin-form, signup-form)
+│   ├── providers/     # React context providers (auth-provider)
+│   └── ui/            # shadcn/ui component library
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts  # Browser client for client components
+│   │   ├── server.ts  # Server client for server components
+│   │   └── middleware.ts # Middleware utility for session management
+│   └── utils.ts       # General utilities
+└── middleware.ts      # Next.js middleware for route protection
 ```
 
 ## Authentication Architecture
@@ -114,4 +112,4 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 - Dashboard layout includes collapsible sidebar navigation
 - Uses React 19 with Next.js 15 App Router patterns
 - shadcn/ui components are pre-configured with proper aliases
-- Path aliases configured: `@/*` maps to project root
+- Path aliases configured: `@/*` maps to `src/*` directory
