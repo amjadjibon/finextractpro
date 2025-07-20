@@ -9,8 +9,8 @@ export default function SignInPage() {
         {/* Logo */}
         <div className="text-center">
           <Link href="/" className="inline-flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6 text-white" />
+            <div className="w-8 h-8 bg-linear-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-md">
+              <FileText className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="text-2xl font-bold text-gray-900">FinExtractPro</span>
           </Link>
