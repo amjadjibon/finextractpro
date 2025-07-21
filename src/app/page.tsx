@@ -40,6 +40,133 @@ export default function LandingPage() {
     hourlyRate: 50,
   })
 
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://finextractpro.vercel.app/#organization",
+        "name": "FinExtractPro",
+        "url": "https://finextractpro.vercel.app",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://finextractpro.vercel.app/logo.png",
+          "width": 200,
+          "height": 200
+        },
+        "description": "AI-powered financial document processing that saves time, eliminates errors, and scales with your business.",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "1-800-EXTRACT",
+          "contactType": "customer service",
+          "email": "support@finextractpro.com"
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "San Francisco",
+          "addressRegion": "CA",
+          "addressCountry": "US"
+        },
+        "sameAs": [
+          "https://twitter.com/finextractpro",
+          "https://linkedin.com/company/finextractpro"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://finextractpro.vercel.app/#website",
+        "url": "https://finextractpro.vercel.app",
+        "name": "FinExtractPro",
+        "description": "AI-Powered Financial Document Processing",
+        "publisher": {
+          "@id": "https://finextractpro.vercel.app/#organization"
+        },
+        "inLanguage": "en-US"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "FinExtractPro",
+        "applicationCategory": "BusinessApplication",
+        "description": "AI-powered financial document processing software that extracts data from PDFs with 99% accuracy.",
+        "url": "https://finextractpro.vercel.app",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Starter Plan",
+            "price": "99",
+            "priceCurrency": "USD",
+            "priceValidUntil": "2025-12-31",
+            "description": "Perfect for small teams - Up to 500 documents/month"
+          },
+          {
+            "@type": "Offer",
+            "name": "Professional Plan",
+            "price": "299",
+            "priceCurrency": "USD",
+            "priceValidUntil": "2025-12-31",
+            "description": "For growing businesses - Up to 2,000 documents/month"
+          },
+          {
+            "@type": "Offer",
+            "name": "Enterprise Plan",
+            "price": "899",
+            "priceCurrency": "USD",
+            "priceValidUntil": "2025-12-31",
+            "description": "For large organizations - Unlimited documents"
+          }
+        ],
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "reviewCount": "150",
+          "bestRating": "5",
+          "worstRating": "1"
+        },
+        "operatingSystem": "Web-based",
+        "browserRequirements": "Modern web browser",
+        "screenshot": "https://finextractpro.vercel.app/screenshot.png",
+        "featureList": [
+          "AI-powered document extraction",
+          "99% accuracy guarantee",
+          "Batch processing",
+          "Excel/CSV export",
+          "API access",
+          "Custom integrations"
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How accurate is the AI extraction?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Our AI achieves 99% accuracy on financial documents. We use specialized models trained on financial data formats and include built-in validation checks."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What file formats do you support?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We support PDF, Word documents, Excel files, and most image formats (JPG, PNG, TIFF). Our AI works best with PDFs containing financial tables."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How long does processing take?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Most documents are processed within 2-3 minutes. Batch processing of multiple documents can be completed simultaneously for faster turnaround."
+            }
+          }
+        ]
+      }
+    ]
+  }
+
   const calculateROI = () => {
     const monthlyHours = roiData.documents * roiData.hoursPerDoc
     const monthlyCost = monthlyHours * roiData.hourlyRate
@@ -59,6 +186,12 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      
       {/* Header */}
       <header className="border-b border-gray-200 bg-white/95 backdrop-blur-xs sticky top-0 z-50 transition-all duration-300">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -179,11 +312,11 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-16 lg:py-24 bg-linear-to-br from-primary/5 via-white to-secondary/5 relative overflow-hidden">
+      <section className="py-16 lg:py-24 bg-linear-to-br from-primary/5 via-white to-secondary/5 relative overflow-hidden" role="banner">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="container mx-auto px-4 relative">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6 animate-in slide-in-from-left-8 duration-1000">
+            <header className="space-y-6 animate-in slide-in-from-left-8 duration-1000">
               <div className="space-y-4">
                 <Badge className="bg-primary/10 text-primary hover:bg-primary/10 px-3 py-1 text-xs font-semibold">
                   🚀 AI-Powered Financial Data Extraction
@@ -198,7 +331,7 @@ export default function LandingPage() {
                 </h1>
                 <p className="text-lg lg:text-xl text-gray-600 leading-relaxed max-w-2xl">
                   AI-powered extraction of financial tables from complex PDFs with{" "}
-                  <span className="font-semibold text-primary">99% accuracy</span>. Process hundreds of documents in
+                  <strong className="font-semibold text-primary">99% accuracy</strong>. Process hundreds of documents in
                   minutes, not days.
                 </p>
               </div>
@@ -233,10 +366,10 @@ export default function LandingPage() {
                   <span>Cancel anytime</span>
                 </div>
               </div>
-            </div>
+            </header>
 
             {/* Split-screen comparison */}
-            <div className="relative animate-in slide-in-from-right-8 duration-1000 delay-300">
+            <figure className="relative animate-in slide-in-from-right-8 duration-1000 delay-300">
               <div className="bg-white rounded-2xl shadow-xl p-6 transform rotate-1 hover:rotate-0 transition-all duration-500">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -277,7 +410,10 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-            </div>
+              <figcaption className="sr-only">
+                Visual comparison showing unstructured PDF data being transformed into organized Excel spreadsheets
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>

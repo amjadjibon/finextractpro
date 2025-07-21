@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
               </p>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="https://finextractpro.com/auth/signup" 
+                <a href="https://finextractpro.vercel.app/auth/signup" 
                    style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
                   Start Free Trial
                 </a>
