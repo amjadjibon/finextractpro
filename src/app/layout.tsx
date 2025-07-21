@@ -1,6 +1,7 @@
 import "@/app/globals.css"
 import type { ReactNode } from "react"
 import type { Metadata } from "next"
+import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider } from "@/components/providers/auth-provider"
 
 export const metadata: Metadata = {
@@ -76,6 +77,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className="font-sans antialiased">
         <AuthProvider>{children}</AuthProvider>
+        <Analytics />
       </body>
     </html>
   )
