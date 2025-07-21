@@ -89,6 +89,9 @@ export default function LandingPage() {
             <Link href="#roi" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">
               ROI Calculator
             </Link>
+            <Link href="/contact" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">
+              Contact
+            </Link>
             <Link href="/auth/signin">
               <Button
                 variant="outline"
@@ -147,6 +150,12 @@ export default function LandingPage() {
                 className="block text-sm text-gray-600 hover:text-primary transition-colors font-medium"
               >
                 ROI Calculator
+              </Link>
+              <Link
+                href="/contact"
+                className="block text-sm text-gray-600 hover:text-primary transition-colors font-medium"
+              >
+                Contact
               </Link>
               <div className="flex flex-col space-y-2 pt-3">
                                   <Link href="/auth/signin">
