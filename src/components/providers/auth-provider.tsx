@@ -19,6 +19,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createClient()
 
   useEffect(() => {
+    // Skip auth setup for localhost:3000 in development
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && window.location.port === '3000') {
+      setUser({ id: 'dev-user', email: 'dev@localhost' } as User)
+      setLoading(false)
+      return
+    }
+
     // Get initial user
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
