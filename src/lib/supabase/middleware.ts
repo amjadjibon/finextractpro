@@ -2,17 +2,6 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  // Skip auth for localhost:3000 in development
-  if (
-    process.env.NODE_ENV === 'development' &&
-    request.nextUrl.hostname === 'localhost' &&
-    request.nextUrl.port === '3000'
-  ) {
-    return NextResponse.next({
-      request,
-    })
-  }
-
   let supabaseResponse = NextResponse.next({
     request,
   })

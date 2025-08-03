@@ -23,8 +23,25 @@ export default function UploadDocumentsPage() {
   const [selectedDocumentType, setSelectedDocumentType] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState("")
   const [description, setDescription] = useState("")
-  const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
+  const [uploadedFiles, setUploadedFiles] = useState<Array<{
+    id: number;
+    name: string;
+    status: string;
+    size: number;
+    uploadedAt: string;
+  }>>([])
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
+
+  // Supported file types
+  const supportedTypes = {
+    'application/pdf': { ext: 'pdf', name: 'PDF Document', icon: 'text-red-600', maxSize: 10 },
+    'text/plain': { ext: 'txt', name: 'Text Document', icon: 'text-gray-600', maxSize: 5 },
+    'application/msword': { ext: 'doc', name: 'Word Document', icon: 'text-blue-600', maxSize: 10 },
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { ext: 'docx', name: 'Word Document', icon: 'text-blue-600', maxSize: 10 },
+    'image/jpeg': { ext: 'jpg', name: 'JPEG Image', icon: 'text-green-600', maxSize: 5 },
+    'image/png': { ext: 'png', name: 'PNG Image', icon: 'text-blue-600', maxSize: 5 },
+    'image/tiff': { ext: 'tiff', name: 'TIFF Image', icon: 'text-purple-600', maxSize: 10 }
+  }
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -36,25 +53,51 @@ export default function UploadDocumentsPage() {
     }
   }, [])
 
+  const validateFiles = (fileList: File[]) => {
+    const validFiles: File[] = []
+    const errors: string[] = []
+
+    fileList.forEach(file => {
+      const fileType = supportedTypes[file.type as keyof typeof supportedTypes]
+      
+      if (!fileType) {
+        errors.push(`${file.name}: Unsupported file type (${file.type})`)
+        return
+      }
+
+      const maxSizeBytes = fileType.maxSize * 1024 * 1024 // Convert MB to bytes
+      if (file.size > maxSizeBytes) {
+        errors.push(`${file.name}: File too large (max ${fileType.maxSize}MB)`)
+        return
+      }
+
+      validFiles.push(file)
+    })
+
+    if (errors.length > 0) {
+      setUploadErrors(prev => [...prev, ...errors])
+    }
+
+    return validFiles
+  }
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
 
-    console.log('Files dropped:', e.dataTransfer.files)
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const newFiles = Array.from(e.dataTransfer.files)
-      console.log('Processing dropped files:', newFiles)
-      setFiles((prev) => [...prev, ...newFiles])
+      const validFiles = validateFiles(newFiles)
+      setFiles((prev) => [...prev, ...validFiles])
     }
   }, [])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('File selection triggered', e.target.files)
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
-      console.log('Selected files:', newFiles)
-      setFiles((prev) => [...prev, ...newFiles])
+      const validFiles = validateFiles(newFiles)
+      setFiles((prev) => [...prev, ...validFiles])
     }
   }
 
@@ -62,21 +105,15 @@ export default function UploadDocumentsPage() {
     setFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase()
-    switch (extension) {
-      case 'pdf':
-        return <FileText className="w-5 h-5 text-red-600" />
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-        return <FileText className="w-5 h-5 text-blue-600" />
-      case 'tiff':
-      case 'tif':
-        return <FileText className="w-5 h-5 text-purple-600" />
-      default:
-        return <FileText className="w-5 h-5 text-gray-600" />
-    }
+  const getFileIcon = (file: File) => {
+    const fileType = supportedTypes[file.type as keyof typeof supportedTypes]
+    const iconClass = fileType?.icon || 'text-gray-600'
+    return <FileText className={`w-5 h-5 ${iconClass}`} />
+  }
+
+  const getFileTypeName = (file: File) => {
+    const fileType = supportedTypes[file.type as keyof typeof supportedTypes]
+    return fileType?.name || 'Unknown'
   }
 
   const formatFileSize = (bytes: number) => {
@@ -97,34 +134,35 @@ export default function UploadDocumentsPage() {
     setUploadProgress(0)
 
     try {
-      const uploadPromises = files.map(async (file, index) => {
+      const uploadPromises = files.map(async (file) => {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('documentType', selectedDocumentType)
         formData.append('template', selectedTemplate)
         formData.append('description', description)
 
-        // Simulate API call - replace with actual API endpoint
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            // Simulate progress
-            const progressIncrement = 100 / files.length
-            setUploadProgress((prev) => Math.min(prev + progressIncrement, 100))
-            
-            // Simulate random success/failure for demo
-            if (Math.random() > 0.1) {
-              resolve({
-                id: Date.now() + index,
-                name: file.name,
-                status: 'completed',
-                size: file.size,
-                uploadedAt: new Date().toISOString()
-              })
-            } else {
-              reject(new Error(`Failed to upload ${file.name}`))
-            }
-          }, 1000 + Math.random() * 2000)
+        // Call actual API endpoint
+        const response = await fetch('/api/documents/upload', {
+          method: 'POST',
+          body: formData,
         })
+
+        const progressIncrement = 100 / files.length
+        setUploadProgress((prev) => Math.min(prev + progressIncrement, 100))
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || `Failed to upload ${file.name}`)
+        }
+
+        const result = await response.json()
+        return {
+          id: result.document.id,
+          name: result.document.name,
+          status: result.document.status,
+          size: result.document.size,
+          uploadedAt: result.document.uploadedAt
+        }
       })
 
       const results = await Promise.allSettled(uploadPromises)
@@ -138,7 +176,13 @@ export default function UploadDocumentsPage() {
           ...prev,
           ...results
             .filter(r => r.status === 'fulfilled')
-            .map(r => (r as PromiseFulfilledResult<any>).value)
+            .map(r => (r as PromiseFulfilledResult<{
+              id: number;
+              name: string;
+              status: string;
+              size: number;
+              uploadedAt: string;
+            }>).value)
         ])
       }
 
@@ -214,11 +258,11 @@ export default function UploadDocumentsPage() {
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
                       Drop your document here, or click to browse
                     </h3>
-                    <p className="text-gray-500 mb-4">Supports PDF, PNG, JPG, TIFF files up to 10MB</p>
+                    <p className="text-gray-500 mb-4">Supports PDF, TXT, DOC/DOCX, PNG, JPG, TIFF files up to 10MB</p>
                     <input
                       type="file"
                       multiple
-                      accept=".pdf,.png,.jpg,.jpeg,.tiff"
+                      accept=".pdf,.txt,.doc,.docx,.png,.jpg,.jpeg,.tiff"
                       onChange={handleFileSelect}
                       className="hidden"
                       id="file-upload"
@@ -299,11 +343,11 @@ export default function UploadDocumentsPage() {
                   >
                     <FolderOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Drop multiple documents here</h3>
-                    <p className="text-gray-500 mb-4">Upload up to 50 documents at once (max 100MB total)</p>
+                    <p className="text-gray-500 mb-4">Upload up to 50 documents at once (PDF, TXT, DOC/DOCX, images)</p>
                     <input
                       type="file"
                       multiple
-                      accept=".pdf,.png,.jpg,.jpeg,.tiff"
+                      accept=".pdf,.txt,.doc,.docx,.png,.jpg,.jpeg,.tiff"
                       onChange={handleFileSelect}
                       className="hidden"
                       id="batch-upload"
@@ -362,10 +406,10 @@ export default function UploadDocumentsPage() {
                   {files.map((file, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center space-x-3">
-                        {getFileIcon(file.name)}
+                        {getFileIcon(file)}
                         <div>
                           <p className="font-medium text-sm">{file.name}</p>
-                          <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                          <p className="text-xs text-gray-500">{formatFileSize(file.size)} • {getFileTypeName(file)}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -512,19 +556,27 @@ export default function UploadDocumentsPage() {
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <FileText className="w-4 h-4 text-red-600" />
-                  <span className="text-sm">PDF documents</span>
+                  <span className="text-sm">PDF documents (up to 10MB)</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <FileText className="w-4 h-4 text-primary" />
-                  <span className="text-sm">PNG images</span>
+                  <FileText className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm">Text files (.txt, up to 5MB)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm">Word documents (.doc/.docx, up to 10MB)</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <FileText className="w-4 h-4 text-green-600" />
-                  <span className="text-sm">JPG/JPEG images</span>
+                  <span className="text-sm">JPEG images (up to 5MB)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm">PNG images (up to 5MB)</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <FileText className="w-4 h-4 text-purple-600" />
-                  <span className="text-sm">TIFF images</span>
+                  <span className="text-sm">TIFF images (up to 10MB)</span>
                 </div>
               </div>
                               <div className="mt-4 p-3 bg-primary/5 rounded-lg">
@@ -535,37 +587,7 @@ export default function UploadDocumentsPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Uploads</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">Invoice_Q3_2024.pdf</p>
-                    <p className="text-xs text-gray-500">2 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Clock className="w-4 h-4 text-primary" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">Bank_Statement.pdf</p>
-                    <p className="text-xs text-gray-500">Processing...</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <AlertCircle className="w-4 h-4 text-red-500" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">Tax_Form.pdf</p>
-                    <p className="text-xs text-gray-500">Error - retry needed</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Recent Activity - TODO: Replace with real recent uploads */}
         </div>
       </div>
     </div>

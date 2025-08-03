@@ -56,8 +56,8 @@ import {
   Copy,
 } from "lucide-react"
 
-// Mock data - replace with real API data
-const mockExports = [
+// Exports will be loaded from the API
+const mockExports = false ? [
   {
     id: 1,
     name: "Invoice_Data_Q1_2024.xlsx",
@@ -133,7 +133,7 @@ const mockExports = [
     includeFields: ["All Available Fields"],
     filters: "All Documents",
   },
-]
+] : []
 
 export default function ExportsPage() {
   const [searchTerm, setSearchTerm] = useState("")

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect, useCallback } from "react"
+import { templatesAPI } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -46,98 +47,57 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
-// Mock data - replace with real API data
-const mockTemplates = [
-  {
-    id: 1,
-    name: "Standard Invoice Template",
-    description: "Extract common invoice fields like amount, date, vendor details",
-    type: "invoice",
-    status: "active",
-    fields: 12,
-    documents: 124,
-    accuracy: 98.5,
-    createdDate: "2024-01-10",
-    lastUsed: "2024-01-15",
-    isPublic: false,
-    isFavorite: true,
-    tags: ["invoice", "accounting", "standard"],
-  },
-  {
-    id: 2,
-    name: "Bank Statement Parser",
-    description: "Parse bank statements and extract transaction details",
-    type: "bank-statement",
-    status: "active",
-    fields: 8,
-    documents: 67,
-    accuracy: 96.2,
-    createdDate: "2024-01-05",
-    lastUsed: "2024-01-14",
-    isPublic: true,
-    isFavorite: false,
-    tags: ["bank", "transactions", "finance"],
-  },
-  {
-    id: 3,
-    name: "Tax Form W-2 Extractor",
-    description: "Extract tax information from W-2 forms",
-    type: "tax-form",
-    status: "draft",
-    fields: 15,
-    documents: 0,
-    accuracy: 0,
-    createdDate: "2024-01-12",
-    lastUsed: null,
-    isPublic: false,
-    isFavorite: false,
-    tags: ["tax", "w2", "hr"],
-  },
-  {
-    id: 4,
-    name: "Receipt Scanner Pro",
-    description: "Advanced receipt scanning with line item detection",
-    type: "receipt",
-    status: "active",
-    fields: 10,
-    documents: 203,
-    accuracy: 94.8,
-    createdDate: "2023-12-20",
-    lastUsed: "2024-01-13",
-    isPublic: true,
-    isFavorite: true,
-    tags: ["receipt", "expenses", "retail"],
-  },
-  {
-    id: 5,
-    name: "Contract Terms Extractor",
-    description: "Extract key terms and dates from contracts",
-    type: "contract",
-    status: "testing",
-    fields: 20,
-    documents: 12,
-    accuracy: 89.3,
-    createdDate: "2024-01-08",
-    lastUsed: "2024-01-11",
-    isPublic: false,
-    isFavorite: false,
-    tags: ["contract", "legal", "terms"],
-  },
-]
+// Templates will be loaded from the API
 
 export default function TemplatesPage() {
+  const [templates, setTemplates] = useState([])
+  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [favoritesOnly, setFavoritesOnly] = useState(false)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
+  })
 
-  const filteredTemplates = mockTemplates.filter((template) => {
-    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         template.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || template.status === statusFilter
-    const matchesType = typeFilter === "all" || template.type === typeFilter
+  // Fetch templates from API
+  const fetchTemplates = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await templatesAPI.list({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchTerm,
+        status: statusFilter,
+        type: typeFilter,
+        sortBy: 'created_date',
+        sortOrder: 'desc',
+        includePublic: true
+      })
+      
+      setTemplates(data.templates)
+      setPagination(data.pagination)
+    } catch (error) {
+      console.error('Error fetching templates:', error)
+      setTemplates([])
+    } finally {
+      setLoading(false)
+    }
+  }, [pagination.page, pagination.limit, searchTerm, statusFilter, typeFilter])
+
+  // Fetch templates on component mount and when filters change
+  useEffect(() => {
+    fetchTemplates()
+  }, [fetchTemplates])
+
+  const filteredTemplates = templates.filter((template) => {
     const matchesFavorites = !favoritesOnly || template.isFavorite
-    return matchesSearch && matchesStatus && matchesType && matchesFavorites
+    return matchesFavorites
   })
 
   const getStatusBadge = (status: string) => {
@@ -199,7 +159,7 @@ export default function TemplatesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Templates</p>
-                <p className="text-2xl font-bold">{mockTemplates.length}</p>
+                <p className="text-2xl font-bold">{templates.length}</p>
               </div>
               <Template className="w-8 h-8 text-primary" />
             </div>
@@ -211,7 +171,7 @@ export default function TemplatesPage() {
               <div>
                 <p className="text-sm text-gray-600">Active</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {mockTemplates.filter(t => t.status === "active").length}
+                  {templates.filter(t => t.status === "active").length}
                 </p>
               </div>
               <Zap className="w-8 h-8 text-green-500" />
@@ -224,7 +184,7 @@ export default function TemplatesPage() {
               <div>
                 <p className="text-sm text-gray-600">Documents Processed</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {mockTemplates.reduce((sum, t) => sum + t.documents, 0)}
+                  {templates.reduce((sum, t) => sum + t.documents, 0)}
                 </p>
               </div>
               <Target className="w-8 h-8 text-blue-500" />
@@ -237,7 +197,7 @@ export default function TemplatesPage() {
               <div>
                 <p className="text-sm text-gray-600">Avg. Accuracy</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {Math.round(mockTemplates.filter(t => t.accuracy > 0).reduce((sum, t, _, arr) => sum + t.accuracy / arr.length, 0))}%
+                  {templates.filter(t => t.accuracy > 0).length > 0 ? Math.round(templates.filter(t => t.accuracy > 0).reduce((sum, t, _, arr) => sum + t.accuracy / arr.length, 0)) : 0}%
                 </p>
               </div>
               <Brain className="w-8 h-8 text-purple-500" />

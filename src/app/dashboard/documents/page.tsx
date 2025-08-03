@@ -1,16 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -32,91 +30,72 @@ import {
   Eye,
   Edit,
   Trash2,
-  Calendar,
   CheckCircle,
   Clock,
   AlertCircle,
   Plus,
   Grid,
   List,
-  SortAsc,
-  SortDesc,
 } from "lucide-react"
 import Link from "next/link"
 
-// Mock data - replace with real API data
-const mockDocuments = [
-  {
-    id: 1,
-    name: "Invoice_2024_001.pdf",
-    type: "invoice",
-    status: "completed",
-    uploadDate: "2024-01-15",
-    processedDate: "2024-01-15",
-    size: "2.4 MB",
-    fields: 12,
-    confidence: 98,
-  },
-  {
-    id: 2,
-    name: "Bank_Statement_Jan.pdf",
-    type: "bank-statement",
-    status: "processing",
-    uploadDate: "2024-01-14",
-    processedDate: null,
-    size: "1.8 MB",
-    fields: 0,
-    confidence: 0,
-  },
-  {
-    id: 3,
-    name: "Receipt_Coffee_Shop.jpg",
-    type: "receipt",
-    status: "completed",
-    uploadDate: "2024-01-13",
-    processedDate: "2024-01-13",
-    size: "0.8 MB",
-    fields: 8,
-    confidence: 95,
-  },
-  {
-    id: 4,
-    name: "Tax_Form_W2.pdf",
-    type: "tax-form",
-    status: "error",
-    uploadDate: "2024-01-12",
-    processedDate: null,
-    size: "1.2 MB",
-    fields: 0,
-    confidence: 0,
-  },
-  {
-    id: 5,
-    name: "Expense_Report_Q1.pdf",
-    type: "expense-report",
-    status: "completed",
-    uploadDate: "2024-01-11",
-    processedDate: "2024-01-11",
-    size: "3.1 MB",
-    fields: 25,
-    confidence: 97,
-  },
-]
+// Documents will be loaded from the API
 
 export default function DocumentsPage() {
+  const [documents, setDocuments] = useState([])
+  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
-  const [sortField, setSortField] = useState("uploadDate")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
-
-  const filteredDocuments = mockDocuments.filter((doc) => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || doc.status === statusFilter
-    const matchesType = typeFilter === "all" || doc.type === typeFilter
-    return matchesSearch && matchesStatus && matchesType
+  const [sortField] = useState("uploadDate")
+  const [sortDirection] = useState<"asc" | "desc">("desc")
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
   })
+
+  // Fetch documents from API
+  const fetchDocuments = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+        search: searchTerm,
+        status: statusFilter,
+        type: typeFilter,
+        sortBy: sortField === 'uploadDate' ? 'upload_date' : sortField,
+        sortOrder: sortDirection
+      })
+
+      const response = await fetch(`/api/documents?${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch documents')
+      }
+
+      const data = await response.json()
+      setDocuments(data.documents)
+      setPagination(data.pagination)
+    } catch (error) {
+      console.error('Error fetching documents:', error)
+      setDocuments([])
+    } finally {
+      setLoading(false)
+    }
+  }, [pagination.page, pagination.limit, searchTerm, statusFilter, typeFilter, sortField, sortDirection])
+
+  // Fetch documents on component mount and when filters change
+  useEffect(() => {
+    fetchDocuments()
+  }, [fetchDocuments])
+
+
+  const filteredDocuments = documents
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -188,7 +167,7 @@ export default function DocumentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Documents</p>
-                <p className="text-2xl font-bold">{mockDocuments.length}</p>
+                <p className="text-2xl font-bold">{documents.length}</p>
               </div>
               <FileText className="w-8 h-8 text-primary" />
             </div>
@@ -200,7 +179,7 @@ export default function DocumentsPage() {
               <div>
                 <p className="text-sm text-gray-600">Completed</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {mockDocuments.filter(d => d.status === "completed").length}
+                  {documents.filter(d => d.status === "completed").length}
                 </p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500" />
@@ -213,7 +192,7 @@ export default function DocumentsPage() {
               <div>
                 <p className="text-sm text-gray-600">Processing</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {mockDocuments.filter(d => d.status === "processing").length}
+                  {documents.filter(d => d.status === "processing").length}
                 </p>
               </div>
               <Clock className="w-8 h-8 text-yellow-500" />
@@ -226,7 +205,7 @@ export default function DocumentsPage() {
               <div>
                 <p className="text-sm text-gray-600">Errors</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {mockDocuments.filter(d => d.status === "error").length}
+                  {documents.filter(d => d.status === "error").length}
                 </p>
               </div>
               <AlertCircle className="w-8 h-8 text-red-500" />

@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { templatesAPI } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,8 +15,13 @@ import { ArrowLeft, Upload, FileText, Plus, Trash2, Save, Play, Settings, Target
 import Link from "next/link"
 
 export default function CreateTemplatePage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
   const [templateName, setTemplateName] = useState("")
+  const [description, setDescription] = useState("")
   const [documentType, setDocumentType] = useState("")
+  const [isPublic, setIsPublic] = useState(false)
+  const [tags, setTags] = useState<string[]>([])
   const [fields, setFields] = useState([
     { id: 1, name: "Invoice Number", type: "text", required: true, validation: "Required, Alphanumeric" },
     { id: 2, name: "Invoice Date", type: "date", required: true, validation: "Required, Date format" },
@@ -38,6 +45,47 @@ export default function CreateTemplatePage() {
 
   const updateField = (id: number, key: string, value: any) => {
     setFields(fields.map((field) => (field.id === id ? { ...field, [key]: value } : field)))
+  }
+
+  const handleSaveTemplate = async () => {
+    if (!templateName || !documentType) {
+      alert('Please fill in template name and document type')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const templateData = {
+        name: templateName,
+        description: description,
+        document_type: documentType,
+        status: 'active',
+        fields: fields.map(field => ({
+          id: field.id,
+          name: field.name,
+          type: field.type,
+          required: field.required,
+          validation: field.validation
+        })),
+        settings: {},
+        is_public: isPublic,
+        is_favorite: false,
+        tags: tags
+      }
+
+      const result = await templatesAPI.create(templateData)
+      
+      if (result) {
+        router.push('/dashboard/templates')
+      } else {
+        alert('Failed to create template')
+      }
+    } catch (error) {
+      console.error('Error creating template:', error)
+      alert('Failed to create template. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const fieldTypes = [
@@ -121,6 +169,8 @@ export default function CreateTemplatePage() {
                     <Label htmlFor="description">Description</Label>
                     <Textarea
                       id="description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
                       placeholder="Describe what this template extracts and how it should be used..."
                       className="mt-1"
                     />
@@ -462,9 +512,13 @@ export default function CreateTemplatePage() {
               <CardTitle>Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full bg-primary hover:bg-primary/90">
+              <Button 
+                className="w-full bg-primary hover:bg-primary/90"
+                onClick={handleSaveTemplate}
+                disabled={loading}
+              >
                 <Save className="w-4 h-4 mr-2" />
-                Save Template
+                {loading ? 'Saving...' : 'Save Template'}
               </Button>
               <Button variant="outline" className="w-full bg-transparent">
                 <Play className="w-4 h-4 mr-2" />

@@ -59,8 +59,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
-// Mock document data - replace with real API call
-const mockDocument = {
+// Document will be loaded from the API
+const mockDocument = false ? {
   id: "1",
   name: "Invoice_2024_001.pdf",
   type: "invoice",
@@ -116,7 +116,7 @@ const mockDocument = {
       details: "10 fields extracted with 98.5% average confidence"
     },
   ]
-}
+} : null
 
 export default function DocumentViewPage() {
   const params = useParams()
@@ -129,14 +129,33 @@ export default function DocumentViewPage() {
   const [rotation, setRotation] = useState(0)
 
   useEffect(() => {
-    // Simulate API call to fetch document
-    setLoading(true)
-    setTimeout(() => {
-      // In real app, fetch document by params.id
-      setDocument(mockDocument)
-      setLoading(false)
-    }, 500)
-  }, [params.id])
+    const fetchDocument = async () => {
+      setLoading(true)
+      
+      // Fetch from API
+        try {
+          const response = await fetch(`/api/documents/${params.id}`)
+          
+          if (!response.ok) {
+            if (response.status === 404) {
+              router.push("/dashboard/documents")
+              return
+            }
+            throw new Error('Failed to fetch document')
+          }
+          
+          const documentData = await response.json()
+          setDocument(documentData)
+        } catch (error) {
+          console.error('Error fetching document:', error)
+          router.push("/dashboard/documents")
+        } finally {
+          setLoading(false)
+        }
+    }
+
+    fetchDocument()
+  }, [params.id, router])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -182,14 +201,17 @@ export default function DocumentViewPage() {
   const saveFieldEdit = (fieldId: string) => {
     const editedValue = editedValues[fieldId]
     if (editedValue !== undefined) {
-      setDocument(prev => ({
-        ...prev,
-        extractedFields: prev.extractedFields.map(field =>
+      setDocument(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          extractedFields: prev.extractedFields.map(field =>
           field.id.toString() === fieldId
             ? { ...field, value: editedValue, confidence: 100 } // Reset confidence when manually edited
             : field
         )
-      }))
+        }
+      })
     }
     setEditingField(null)
     setEditedValues(prev => {
@@ -208,17 +230,30 @@ export default function DocumentViewPage() {
     })
   }
 
-  const handleDeleteDocument = () => {
-    // Simulate delete API call
-    console.log("Deleting document:", document.id)
-    router.push("/dashboard/documents")
+  const handleDeleteDocument = async () => {
+    if (!document) return
+    
+    try {
+      const response = await fetch(`/api/documents/${document.id}`, {
+        method: 'DELETE',
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete document')
+      }
+      
+      router.push("/dashboard/documents")
+    } catch (error) {
+      console.error('Error deleting document:', error)
+      alert('Failed to delete document. Please try again.')
+    }
   }
 
   const handleReprocess = () => {
     // Simulate reprocessing
-    setDocument(prev => ({ ...prev, status: "processing" }))
+    setDocument(prev => prev ? { ...prev, status: "processing" } : prev)
     setTimeout(() => {
-      setDocument(prev => ({ ...prev, status: "completed" }))
+      setDocument(prev => prev ? { ...prev, status: "completed" } : prev)
     }, 3000)
   }
 
@@ -244,6 +279,25 @@ export default function DocumentViewPage() {
               <div className="h-64 bg-gray-200 rounded"></div>
             </div>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!document) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center space-x-4 mb-4">
+          <Link href="/dashboard/documents">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Documents
+            </Button>
+          </Link>
+        </div>
+        <div className="text-center py-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Document Not Found</h1>
+          <p className="text-gray-600">The requested document could not be found.</p>
         </div>
       </div>
     )

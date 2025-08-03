@@ -79,6 +79,9 @@ Key files:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Development Features (Optional)
+NEXT_PUBLIC_SHOW_DUMMY_DATA=true  # Controls display of dummy/demo data (default: true in dev, false in prod)
 ```
 
 ### Google OAuth Setup
@@ -108,8 +111,123 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 5. **Token Management**: Middleware automatically refreshes expired tokens and passes them to server components
 
+## API Endpoints
+
+### Document Management APIs
+
+#### Upload Document
+- **POST** `/api/documents/upload`
+- **Body**: FormData with file and metadata
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Document metadata with upload status
+
+#### Get Documents List
+- **GET** `/api/documents`
+- **Query params**: page, limit, search, status, type, sortBy, sortOrder
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Paginated list of documents
+
+#### Get Single Document
+- **GET** `/api/documents/[id]`
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Complete document data including signed file URL
+
+#### Update Document
+- **PUT** `/api/documents/[id]`
+- **Body**: JSON with description, document_type, template
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Updated document data
+
+#### Delete Document
+- **DELETE** `/api/documents/[id]`
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Success confirmation
+
+### Template Management APIs
+
+#### Get Templates List
+- **GET** `/api/templates`
+- **Query params**: page, limit, search, status, type, sortBy, sortOrder, includePublic
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Paginated list of templates (user's own + public templates)
+
+#### Create Template
+- **POST** `/api/templates`
+- **Body**: JSON with name, description, document_type, fields, settings, etc.
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Created template metadata
+
+#### Get Single Template
+- **GET** `/api/templates/[id]`
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Complete template data including fields and settings
+
+#### Update Template
+- **PUT** `/api/templates/[id]`
+- **Body**: JSON with fields to update
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Updated template data
+
+#### Delete Template
+- **DELETE** `/api/templates/[id]`
+- **Auth**: Required (except localhost in dev)
+- **Returns**: Success confirmation (prevents deletion if template is in use)
+
+### Database Schema
+
+**Documents Table**:
+- Document metadata (name, type, size, status)
+- File storage path in Supabase Storage
+- Processing information (confidence, extracted fields)
+- User ownership and timestamps
+- Processing history as JSONB
+- Template reference (template_id)
+
+**Templates Table**:
+- Template metadata (name, description, document_type)
+- Field definitions as JSONB array
+- Settings and configuration as JSONB
+- Usage statistics (accuracy, documents_processed)
+- Visibility settings (is_public, is_favorite)
+- User ownership and timestamps
+- Tags array for categorization
+
+### Authentication
+- Uses Supabase Auth for user management
+- Row Level Security (RLS) enforces user data isolation
+- All API endpoints require proper authentication
+
 ## Development Notes
 - Dashboard layout includes collapsible sidebar navigation
 - Uses React 19 with Next.js 15 App Router patterns
 - shadcn/ui components are pre-configured with proper aliases
 - Path aliases configured: `@/*` maps to `src/*` directory
+
+## Database Seeding
+
+The application includes a comprehensive database seeding system for development and testing.
+
+### Seed Script Location
+- **SQL File**: `src/lib/database/seed.sql` - Raw SQL with comprehensive test data
+- **JS Runner**: `src/lib/database/seed.js` - JavaScript execution script
+- **Documentation**: `src/lib/database/README.md` - Detailed usage instructions
+
+### Running the Seed Script
+```bash
+# Direct execution
+node src/lib/database/seed.js
+
+# Or add to package.json scripts:
+npm run db:seed
+```
+
+### Test Data Created
+- **5 Template Records**: Invoice, Bank Statement, Receipt, Tax Form, Contract templates
+- **6 Document Records**: Various document types with different processing states
+- **1 Test User**: `testuser@example.com` (if no users exist)
+- **Realistic Metadata**: File sizes, processing history, confidence scores, timestamps
+
+### Prerequisites
+- Supabase project with applied migrations
+- Environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Optional: `SUPABASE_SERVICE_ROLE_KEY` for admin operations
