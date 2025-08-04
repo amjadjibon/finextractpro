@@ -75,9 +75,9 @@ export class S3CompatibleStorage {
       if (file instanceof File) {
         buffer = await file.arrayBuffer()
       } else if (file instanceof Buffer) {
-        buffer = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength)
+        buffer = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength) as ArrayBuffer
       } else {
-        buffer = file
+        buffer = file as ArrayBuffer
       }
 
       const { data, error } = await supabase.storage
@@ -104,8 +104,8 @@ export class S3CompatibleStorage {
         success: true,
         path: data.path,
         fullPath: data.fullPath,
-        signedUrl: signedUrlData?.signedUrl,
-        publicUrl: await this.getPublicUrl(path)
+        signedUrl: signedUrlData?.signedUrl || undefined,
+        publicUrl: (await this.getPublicUrl(path)) || undefined
       }
     } catch (err) {
       return {
@@ -390,6 +390,9 @@ export class S3CompatibleStorage {
 // Default instance for documents
 export const documentsStorage = new S3CompatibleStorage('documents')
 
+// Instance for export files
+export const exportsStorage = new S3CompatibleStorage('exports')
+
 // Utility functions
 export const storageUtils = {
   /**
@@ -397,7 +400,6 @@ export const storageUtils = {
    */
   generateUserFilePath(userId: string, originalFileName: string): string {
     const timestamp = Date.now()
-    const extension = originalFileName.split('.').pop() || 'bin'
     const sanitizedName = originalFileName
       .replace(/[^a-zA-Z0-9.-]/g, '_')
       .substring(0, 100)

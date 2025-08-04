@@ -174,15 +174,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Failed to fetch document' }, { status: 500 })
     }
 
-    // Delete from storage
+    // Delete from S3-compatible storage
     if (document.file_path) {
-      const { error: storageError } = await supabase.storage
-        .from('documents')
-        .remove([document.file_path])
+      const { success, error: storageError } = await documentsStorage.delete(document.file_path)
       
-      if (storageError) {
+      if (!success) {
         console.error('Storage deletion error:', storageError)
         // Continue with database deletion even if storage fails
+      } else {
+        console.log(`✅ File deleted from storage: ${document.file_path}`)
       }
     }
 

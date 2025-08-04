@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { documentsStorage } from '@/lib/storage/s3-client'
+import { exportsStorage } from '@/lib/storage/s3-client'
 
 // GET /api/exports/[id] - Get specific export job
 export async function GET(
@@ -131,7 +131,7 @@ export async function DELETE(
     // Delete the file from storage if it exists
     if (exportJob?.file_path) {
       try {
-        await documentsStorage.delete(exportJob.file_path)
+        await exportsStorage.delete(exportJob.file_path)
       } catch (storageError) {
         console.warn('Failed to delete export file:', storageError)
         // Continue with database deletion even if file deletion fails

@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { aiExporter, type ExportRequest, type DocumentExportData } from '@/lib/exports/ai-exporter'
 
 export interface ExportJob {
   id: string
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/exports - Create new export job
+// POST /api/exports - Create new export job with AI processing
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -117,7 +118,8 @@ export async function POST(request: NextRequest) {
       format = 'json',
       filters = {},
       include_fields = [],
-      settings = {}
+      settings = {},
+      document_ids = [] // New: specify which documents to export
     } = body
 
     // Validate required fields
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     // Validate type and format
     const validTypes = ['document_export', 'template_export', 'bulk_export']
-    const validFormats = ['json', 'csv', 'excel', 'pdf', 'zip']
+    const validFormats = ['json', 'csv', 'excel']
 
     if (!validTypes.includes(type)) {
       return NextResponse.json({ error: 'Invalid export type' }, { status: 400 })
@@ -137,7 +139,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid export format' }, { status: 400 })
     }
 
-    // Create new export job
+    // Create export job in database first
     const newExport = {
       user_id: user.id,
       name,
@@ -147,11 +149,12 @@ export async function POST(request: NextRequest) {
       filters,
       include_fields,
       settings,
-      status: 'pending',
+      status: 'processing',
       file_size: 0,
       records_count: 0,
       download_count: 0,
-      retry_count: 0
+      retry_count: 0,
+      started_at: new Date().toISOString()
     }
 
     const { data: exportJob, error: insertError } = await supabase
@@ -165,10 +168,120 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create export' }, { status: 500 })
     }
 
-    // TODO: Queue the export job for background processing
-    // For now, we'll just return the created job
-    
-    return NextResponse.json({ export: exportJob }, { status: 201 })
+    try {
+      // Fetch documents to export
+      let documentsQuery = supabase
+        .from('documents')
+        .select('id, name, document_type, status, extracted_fields, confidence, pages, processed_date, template')
+        .eq('user_id', user.id)
+
+      // Apply document ID filter if specified
+      if (document_ids.length > 0) {
+        documentsQuery = documentsQuery.in('id', document_ids)
+      }
+
+      // Apply filters
+      if (filters.documentType) {
+        documentsQuery = documentsQuery.eq('document_type', filters.documentType)
+      }
+      if (filters.status) {
+        documentsQuery = documentsQuery.eq('status', filters.status)
+      }
+
+      const { data: documents, error: fetchError } = await documentsQuery
+
+      if (fetchError) {
+        throw new Error(`Failed to fetch documents: ${fetchError.message}`)
+      }
+
+      if (!documents || documents.length === 0) {
+        throw new Error('No documents found matching the export criteria')
+      }
+
+      // Transform documents for AI processing
+      const documentsForExport: DocumentExportData[] = documents.map(doc => ({
+        id: doc.id,
+        name: doc.name,
+        type: doc.document_type || 'unknown',
+        status: doc.status,
+        extractedFields: doc.extracted_fields || [],
+        metadata: {
+          confidence: doc.confidence,
+          processingDate: doc.processed_date,
+          pages: doc.pages,
+          template: doc.template
+        }
+      }))
+
+      // Create AI export request
+      const exportRequest: ExportRequest = {
+        userId: user.id,
+        name,
+        description,
+        format: format as 'json' | 'csv' | 'excel',
+        documents: documentsForExport,
+        filters,
+        includeFields: include_fields,
+        settings
+      }
+
+      // Generate export using AI
+      console.log(`🚀 Starting AI export generation for user ${user.id}`)
+      const exportResult = await aiExporter.generateExport(exportRequest)
+
+      if (!exportResult.success) {
+        throw new Error(exportResult.error || 'Export generation failed')
+      }
+
+      // Update export job with results
+      const updateData = {
+        status: 'completed',
+        file_path: exportResult.filePath,
+        file_size: exportResult.fileSize || 0,
+        records_count: exportResult.recordsCount || 0,
+        completed_at: new Date().toISOString()
+      }
+
+      const { data: updatedExport, error: updateError } = await supabase
+        .from('exports')
+        .update(updateData)
+        .eq('id', exportJob.id)
+        .eq('user_id', user.id)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('Error updating export job:', updateError)
+        // Don't fail the request since the export was generated successfully
+      }
+
+      console.log(`✅ Export completed successfully: ${exportResult.fileName}`)
+
+      return NextResponse.json({ 
+        export: updatedExport || exportJob,
+        file_url: exportResult.fileUrl,
+        message: 'Export generated successfully'
+      }, { status: 201 })
+
+    } catch (processingError) {
+      console.error('Export processing error:', processingError)
+      
+      // Update export job status to failed
+      await supabase
+        .from('exports')
+        .update({
+          status: 'failed',
+          error_message: processingError instanceof Error ? processingError.message : 'Unknown error',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', exportJob.id)
+        .eq('user_id', user.id)
+
+      return NextResponse.json({ 
+        error: 'Export processing failed',
+        details: processingError instanceof Error ? processingError.message : 'Unknown error'
+      }, { status: 500 })
+    }
 
   } catch (error) {
     console.error('Export creation error:', error)

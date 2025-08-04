@@ -303,3 +303,105 @@ The `pdf-parse` library includes test files that can cause build errors when web
 **Workaround**: The build process creates a temporary `test/data/` directory with the required files. This directory is gitignored and only exists during builds.
 
 **Future Solution**: Consider migrating to a different PDF parsing library like `pdfjs-dist` with proper Node.js configuration, or `pdf2pic` for simpler use cases.
+
+## Export System
+
+The application includes a comprehensive AI-powered export system that generates structured data exports from processed documents.
+
+### Export Features
+
+**AI-Powered Generation**
+- Uses AI to intelligently structure export data based on document content
+- Automatically analyzes extracted fields and creates optimized export formats
+- Generates comprehensive summaries and metadata for exports
+
+**Supported Export Formats**
+- **JSON**: Structured data with nested objects, perfect for API integration
+- **CSV**: Tabular format optimized for spreadsheet applications
+- **Excel**: Multi-sheet workbooks with advanced data organization (planned)
+
+**Export Types**
+- **Document Export**: Export selected documents with their extracted data
+- **Template Export**: Export template definitions and usage statistics (planned)
+- **Bulk Export**: Large-scale exports with filtering and pagination (planned)
+
+**Storage Integration**
+- Export files are stored in S3-compatible storage (Supabase Storage)
+- Secure file access with signed URLs and expiration dates
+- Automatic cleanup of expired exports
+
+### Export API Endpoints
+
+**Create Export**
+- **POST** `/api/exports`
+- **Body**: Export configuration with format, filters, and settings
+- **Response**: Export job details with processing status
+
+**List Exports**
+- **GET** `/api/exports`
+- **Query params**: page, limit, status, type, format filtering
+- **Response**: Paginated list of user's export jobs
+
+**Get Export Details**
+- **GET** `/api/exports/[id]`
+- **Response**: Complete export job information
+
+**Download Export**
+- **GET** `/api/exports/[id]/download`
+- **Response**: Signed download URL or direct file stream
+
+**Delete Export**
+- **DELETE** `/api/exports/[id]`
+- **Action**: Removes export job and associated files from storage
+
+### Export Configuration
+
+```typescript
+interface ExportRequest {
+  name: string                    // Export job name
+  description?: string           // Optional description
+  format: 'json' | 'csv' | 'excel'  // Export format
+  document_ids?: string[]        // Specific documents to export (empty = all)
+  filters?: {
+    documentType?: string        // Filter by document type
+    status?: string             // Filter by processing status
+    confidenceThreshold?: number // Minimum confidence score
+    dateRange?: {               // Date range filtering
+      start: string
+      end: string
+    }
+  }
+  include_fields?: string[]      // Specific fields to include
+  settings?: {
+    groupByType?: boolean       // Group documents by type
+    includeMetadata?: boolean   // Include processing metadata
+    compression?: boolean       // Compress export files (planned)
+  }
+}
+```
+
+### Usage Examples
+
+**Create JSON Export**
+```bash
+curl -X POST /api/exports \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Monthly Documents Export",
+    "format": "json",
+    "filters": {
+      "documentType": "invoice",
+      "status": "completed"
+    },
+    "settings": {
+      "groupByType": true,
+      "includeMetadata": true
+    }
+  }'
+```
+
+**Download Export**
+```bash
+curl /api/exports/{export-id}/download
+# Returns: { "download_url": "https://...", "expires_in": 86400 }
+```

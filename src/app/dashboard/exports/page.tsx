@@ -207,10 +207,64 @@ export default function ExportsPage() {
     return new Date(dateString).toLocaleDateString()
   }
 
-  const handleCreateExport = () => {
-    console.log("Creating export:", exportConfig)
-    setIsCreateDialogOpen(false)
-    // Add export creation logic here
+  const handleCreateExport = async () => {
+    try {
+      console.log("Creating export:", exportConfig)
+      
+      // Prepare export request
+      const exportRequest = {
+        name: exportConfig.name,
+        description: exportConfig.description || `${exportConfig.format.toUpperCase()} export of documents`,
+        type: 'document_export',
+        format: exportConfig.format,
+        filters: {
+          documentType: exportConfig.documentTypes.includes('all') ? undefined : exportConfig.documentTypes[0],
+          status: 'completed' // Only export completed documents
+        },
+        include_fields: exportConfig.fields.includes('all') ? [] : exportConfig.fields,
+        settings: {
+          groupByType: true,
+          includeMetadata: true,
+          compression: exportConfig.compression
+        },
+        document_ids: [] // Empty means all user documents (filtered by other criteria)
+      }
+
+      const response = await fetch('/api/exports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportRequest)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create export')
+      }
+
+      const result = await response.json()
+      console.log('Export created successfully:', result)
+      
+      setIsCreateDialogOpen(false)
+      
+      // Reset form
+      setExportConfig({
+        name: "",
+        description: "",
+        format: "json",
+        documentTypes: ["all"],
+        fields: ["all"],
+        compression: false,
+      })
+
+      // Refresh the page to show the new export
+      window.location.reload()
+      
+    } catch (error) {
+      console.error('Error creating export:', error)
+      alert(`Failed to create export: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   return (
