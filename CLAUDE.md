@@ -77,11 +77,19 @@ Key files:
 
 ### Required Environment Variables
 ```bash
+# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # For seeding and admin operations
 
-# Development Features (Optional)
-NEXT_PUBLIC_SHOW_DUMMY_DATA=true  # Controls display of dummy/demo data (default: true in dev, false in prod)
+# AI Provider Configuration (Choose one provider)
+AI_PROVIDER=openai  # Options: openai, google, groq
+AI_MODEL=gpt-4o-mini  # Optional: model name (uses defaults if not specified)
+
+# AI API Keys (provide key for your chosen provider)
+OPENAI_API_KEY=your_openai_api_key
+GOOGLE_API_KEY=your_google_api_key
+GROQ_API_KEY=your_groq_api_key
 ```
 
 ### Google OAuth Setup
@@ -231,3 +239,56 @@ npm run db:seed
 - Supabase project with applied migrations
 - Environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - Optional: `SUPABASE_SERVICE_ROLE_KEY` for admin operations
+
+## AI Document Processing
+
+The application uses AI providers for intelligent document parsing and data extraction.
+
+### Supported AI Providers
+
+**OpenAI**
+- Models: `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `gpt-3.5-turbo`
+- Vision Support: ✅ (supports image documents)
+- Cost: Medium
+- Best for: High accuracy, complex documents
+
+**Google Gemini**
+- Models: `gemini-1.5-pro`, `gemini-1.5-flash`, `gemini-1.0-pro`
+- Vision Support: ✅ (supports image documents)
+- Cost: Medium
+- Best for: Balanced performance, fast processing
+
+**Groq**
+- Models: `llama-3.1-70b-versatile`, `llama-3.1-8b-instant`, `mixtral-8x7b-32768`
+- Vision Support: ❌ (text documents only)
+- Cost: Low
+- Best for: Fast processing, cost-effective
+
+### Document Processing Features
+
+- **Template-Based Extraction**: Uses predefined templates for structured data extraction
+- **Default Template**: Automatic extraction when no template is specified
+- **Multi-Format Support**: PDF, images (JPG, PNG, TIFF), text files
+- **Structured Output**: JSON, CSV, and formatted exports
+- **Confidence Scoring**: AI provides confidence scores for extracted fields
+- **Processing History**: Detailed logs of processing steps
+
+### AI Configuration
+
+Set your preferred provider and model:
+```bash
+# Use OpenAI with GPT-4o-mini (recommended for cost/performance)
+AI_PROVIDER=openai
+AI_MODEL=gpt-4o-mini
+OPENAI_API_KEY=your_key
+
+# Use Google Gemini Flash (fast and efficient)
+AI_PROVIDER=google
+AI_MODEL=gemini-1.5-flash
+GOOGLE_API_KEY=your_key
+
+# Use Groq for cost-effective processing (text only)
+AI_PROVIDER=groq
+AI_MODEL=llama-3.1-8b-instant
+GROQ_API_KEY=your_key
+```

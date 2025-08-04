@@ -70,7 +70,7 @@ export async function GET(
       processingHistory: document.processing_history || [],
       fileUrl: urlData?.signedUrl,
       tags: [], // Could be added later
-      extractedFields: [] // TODO: Add real extracted fields
+      extractedFields: document.extracted_fields || []
     }
 
     return NextResponse.json(responseData)

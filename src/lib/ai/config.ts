@@ -1,0 +1,117 @@
+/**
+ * AI Provider Configuration
+ * 
+ * Supports multiple AI providers (OpenAI, Google Gemini, Groq)
+ * configured via environment variables
+ */
+
+import { openai } from '@ai-sdk/openai'
+import { google } from '@ai-sdk/google'
+import { groq } from '@ai-sdk/groq'
+
+export type AIProvider = 'openai' | 'google' | 'groq'
+
+export interface AIConfig {
+  provider: AIProvider
+  model: string
+  apiKey: string
+}
+
+// Default models for each provider
+const DEFAULT_MODELS = {
+  openai: 'gpt-4o-mini',
+  google: 'gemini-1.5-flash',
+  groq: 'llama-3.1-70b-versatile'
+} as const
+
+// Get AI configuration from environment variables
+export function getAIConfig(): AIConfig {
+  const provider = (process.env.AI_PROVIDER || 'openai') as AIProvider
+  const model = process.env.AI_MODEL || DEFAULT_MODELS[provider]
+  
+  let apiKey: string
+  
+  switch (provider) {
+    case 'openai':
+      apiKey = process.env.OPENAI_API_KEY || ''
+      break
+    case 'google':
+      apiKey = process.env.GOOGLE_API_KEY || ''
+      break
+    case 'groq':
+      apiKey = process.env.GROQ_API_KEY || ''
+      break
+    default:
+      throw new Error(`Unsupported AI provider: ${provider}`)
+  }
+  
+  if (!apiKey) {
+    throw new Error(`Missing API key for provider: ${provider}. Please set the appropriate environment variable.`)
+  }
+  
+  return { provider, model, apiKey }
+}
+
+// Get the AI SDK instance based on configuration
+export function getAIProvider() {
+  const config = getAIConfig()
+  
+  switch (config.provider) {
+    case 'openai':
+      return openai(config.model)
+    case 'google':
+      return google(config.model)
+    case 'groq':
+      return groq(config.model)
+    default:
+      throw new Error(`Unsupported AI provider: ${config.provider}`)
+  }
+}
+
+// Provider-specific configurations
+export const PROVIDER_CONFIGS = {
+  openai: {
+    name: 'OpenAI',
+    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'] as const,
+    supportsVision: true,
+    maxTokens: 4096,
+    costPerToken: 0.0001 // Approximate
+  },
+  google: {
+    name: 'Google Gemini',
+    models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.0-pro'] as const,
+    supportsVision: true,
+    maxTokens: 8192,
+    costPerToken: 0.0001 // Approximate
+  },
+  groq: {
+    name: 'Groq',
+    models: ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'] as const,
+    supportsVision: false,
+    maxTokens: 8192,
+    costPerToken: 0.00001 // Much cheaper
+  }
+} as const
+
+export function validateAIConfig(): { isValid: boolean; error?: string } {
+  try {
+    const config = getAIConfig()
+    const providerConfig = PROVIDER_CONFIGS[config.provider]
+    
+    // Check if model is supported by the provider
+    const supportedModels = providerConfig.models as readonly string[]
+    if (!supportedModels.includes(config.model)) {
+      return {
+        isValid: false,
+        error: `Model ${config.model} is not supported by provider ${config.provider}. Supported models: ${supportedModels.join(', ')}`
+      }
+    }
+    
+    return { isValid: true }
+  } catch (error) {
+    return {
+      isValid: false,
+      error: error instanceof Error ? error.message : 'Unknown configuration error'
+    }
+  }
+}

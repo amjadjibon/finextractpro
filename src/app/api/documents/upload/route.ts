@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { env } from '@/lib/env'
+import { documentParser, DocumentParsingResult } from '@/lib/ai/parser'
+import { dataFormatter } from '@/lib/ai/formatter'
+import { validateAIConfig } from '@/lib/ai/config'
 
 // Supported file types
 const SUPPORTED_TYPES = {
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create document record in database
-    const documentData = {
+    const documentData: any = {
       id: crypto.randomUUID(),
       name: file.name,
       original_name: file.name,
@@ -115,10 +118,111 @@ export async function POST(request: NextRequest) {
       confidence: null,
       pages: null,
       fields_extracted: 0,
-      processing_history: []
+      processing_history: [] as any[]
     }
 
-    // TODO: Add real document processing logic here
+    // Process document with AI
+    let parsingResult: DocumentParsingResult | null = null
+    let processingError: string | null = null
+    
+    try {
+      // Validate AI configuration
+      const aiValidation = validateAIConfig()
+      if (!aiValidation.isValid) {
+        console.warn('⚠️ AI processing disabled:', aiValidation.error)
+        processingError = aiValidation.error || 'AI configuration invalid'
+      } else {
+        console.log('🤖 Starting AI document processing...')
+        
+        // Get template data if specified
+        let templateData = null
+        if (validatedTemplateId) {
+          const { data } = await supabase
+            .from('templates')
+            .select('*')
+            .eq('id', validatedTemplateId)
+            .single()
+          
+          if (data) {
+            templateData = {
+              id: data.id,
+              name: data.name,
+              document_type: data.document_type,
+              fields: data.fields,
+              settings: data.settings
+            }
+          }
+        }
+        
+        // Process document with AI
+        parsingResult = await documentParser.parseDocumentWithFile(file, templateData)
+        
+        console.log(`✅ AI processing completed with ${parsingResult.confidence}% confidence`)
+        console.log(`📊 Extracted ${parsingResult.extracted_fields.length} fields`)
+        
+        // Update document data with AI results
+        documentData.status = 'completed'
+        documentData.confidence = parsingResult.confidence
+        documentData.pages = parsingResult.metadata?.pages || 1
+        documentData.fields_extracted = parsingResult.extracted_fields.length
+        documentData.processed_date = new Date().toISOString()
+        documentData.document_type = parsingResult.document_type
+        
+        // Store AI extraction results
+        ;(documentData as any).extracted_fields = parsingResult.extracted_fields
+        ;(documentData as any).structured_data = parsingResult.structured_data
+        ;(documentData as any).ai_provider = parsingResult.metadata?.provider
+        ;(documentData as any).ai_model = parsingResult.metadata?.model
+        ;(documentData as any).processing_time_ms = parsingResult.metadata?.processing_time
+        
+        // Add processing history
+        documentData.processing_history = [
+          {
+            id: 1,
+            action: 'Document uploaded',
+            timestamp: documentData.upload_date,
+            user: 'User',
+            details: `File uploaded: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`
+          },
+          {
+            id: 2,
+            action: 'AI processing started',
+            timestamp: new Date().toISOString(),
+            user: 'System',
+            details: `Processing with ${parsingResult.metadata?.provider}/${parsingResult.metadata?.model}`
+          },
+          {
+            id: 3,
+            action: 'AI processing completed',
+            timestamp: new Date().toISOString(),
+            user: 'System',
+            details: `Extracted ${parsingResult.extracted_fields.length} fields with ${parsingResult.confidence}% confidence in ${parsingResult.metadata?.processing_time}ms`
+          }
+        ]
+      }
+    } catch (error) {
+      console.error('❌ AI processing failed:', error)
+      processingError = error instanceof Error ? error.message : 'Unknown processing error'
+      
+      // Set document to processing failed state
+      documentData.status = 'error'
+      documentData.processing_history = [
+        {
+          id: 1,
+          action: 'Document uploaded',
+          timestamp: documentData.upload_date,
+          user: 'User',
+          details: `File uploaded: ${file.name}`
+        },
+        {
+          id: 2,
+          action: 'Processing failed',
+          timestamp: new Date().toISOString(),
+          user: 'System',
+          details: `AI processing failed: ${processingError}`
+        }
+      ]
+    }
 
     // Insert document record
     const { data: dbData, error: dbError } = await supabase
@@ -140,8 +244,8 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Return success response
-    return NextResponse.json({
+    // Prepare response data
+    const responseData: any = {
       success: true,
       document: {
         id: dbData.id,
@@ -149,9 +253,60 @@ export async function POST(request: NextRequest) {
         status: dbData.status,
         size: dbData.file_size,
         type: dbData.document_type,
-        uploadedAt: dbData.upload_date
+        uploadedAt: dbData.upload_date,
+        confidence: dbData.confidence,
+        pages: dbData.pages,
+        fieldsExtracted: dbData.fields_extracted,
+        processedAt: dbData.processed_date
       }
-    }, { status: 201 })
+    }
+    
+    // Add AI parsing results if available
+    if (parsingResult) {
+      responseData.parsing = {
+        summary: parsingResult.summary,
+        confidence: parsingResult.confidence,
+        extractedFields: parsingResult.extracted_fields,
+        structuredData: parsingResult.structured_data,
+        provider: parsingResult.metadata?.provider,
+        model: parsingResult.metadata?.model,
+        processingTime: parsingResult.metadata?.processing_time
+      }
+      
+      // Generate formatted exports
+      try {
+        const jsonExport = dataFormatter.toJSON(parsingResult)
+        const csvExport = dataFormatter.toCSV(parsingResult)
+        const structuredExport = dataFormatter.toStructured(parsingResult)
+        
+        responseData.exports = {
+          json: {
+            filename: jsonExport.filename,
+            size: new Blob([jsonExport.data as string]).size,
+            preview: JSON.stringify(parsingResult.structured_data, null, 2).slice(0, 500) + '...'
+          },
+          csv: {
+            filename: csvExport.filename,
+            size: new Blob([csvExport.data as string]).size,
+            rows: parsingResult.extracted_fields.length
+          },
+          structured: {
+            filename: structuredExport.filename,
+            size: new Blob([structuredExport.data as string]).size,
+            fields: parsingResult.extracted_fields.length
+          }
+        }
+      } catch (formatError) {
+        console.warn('Failed to generate export previews:', formatError)
+      }
+    }
+    
+    // Add processing error if occurred
+    if (processingError) {
+      responseData.processingError = processingError
+    }
+    
+    return NextResponse.json(responseData, { status: 201 })
 
   } catch (error) {
     console.error('Document upload error:', error)

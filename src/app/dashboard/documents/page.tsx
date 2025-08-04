@@ -42,7 +42,7 @@ import Link from "next/link"
 // Documents will be loaded from the API
 
 export default function DocumentsPage() {
-  const [documents, setDocuments] = useState([])
+  const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")

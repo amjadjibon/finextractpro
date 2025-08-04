@@ -50,7 +50,7 @@ import Link from "next/link"
 // Templates will be loaded from the API
 
 export default function TemplatesPage() {
-  const [templates, setTemplates] = useState([])
+  const [templates, setTemplates] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
