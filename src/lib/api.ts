@@ -136,6 +136,31 @@ export const documentsAPI = {
   },
 
   upload: uploadFile,
+
+  async export(id: string, format: 'json' | 'csv' | 'structured' = 'json') {
+    const response = await fetch(`/api/documents/${id}/export?format=${format}`)
+    if (!response.ok) {
+      throw new Error('Failed to export document')
+    }
+    return response.json()
+  },
+
+  async downloadExport(id: string, format: 'json' | 'csv' | 'structured' = 'json') {
+    const response = await fetch(`/api/documents/${id}/export?format=${format}&download=true`)
+    if (!response.ok) {
+      throw new Error('Failed to download export')
+    }
+    return response.blob()
+  },
+
+  async getFileUrl(id: string) {
+    const response = await fetch(`/api/documents/${id}`)
+    if (!response.ok) {
+      throw new Error('Failed to get file URL')
+    }
+    const data = await response.json()
+    return data.fileUrl
+  },
 }
 
 export const templatesAPI = {
@@ -209,6 +234,68 @@ export const templatesAPI = {
 
   delete: (id: string) => {
     return apiRequest(`/api/templates/${id}`, {
+      method: 'DELETE',
+    })
+  },
+}
+
+// Settings API
+export const settingsAPI = {
+  list: (params: { category?: string, grouped?: boolean } = {}) => {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value.toString())
+      }
+    })
+
+    return apiRequest<{
+      settings: any[]
+    }>(`/api/settings?${searchParams}`)
+  },
+
+  get: (id: string) => {
+    return apiRequest(`/api/settings/${id}`)
+  },
+
+  create: (data: {
+    category: string
+    key: string
+    value: any
+    type?: string
+    display_name?: string
+    description?: string
+    is_public?: boolean
+    validation_rules?: Record<string, any>
+  }) => {
+    return apiRequest(`/api/settings`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  update: (id: string, data: {
+    value?: any
+    display_name?: string
+    description?: string
+    is_public?: boolean
+    validation_rules?: Record<string, any>
+  }) => {
+    return apiRequest(`/api/settings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  },
+
+  bulkUpdate: (settings: Array<{ category: string, key: string, value: any }>) => {
+    return apiRequest(`/api/settings`, {
+      method: 'PUT',
+      body: JSON.stringify({ settings }),
+    })
+  },
+
+  delete: (id: string) => {
+    return apiRequest(`/api/settings/${id}`, {
       method: 'DELETE',
     })
   },

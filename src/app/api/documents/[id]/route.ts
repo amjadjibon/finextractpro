@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { documentsStorage } from '@/lib/storage/s3-client'
 
 export async function GET(
   request: NextRequest,
@@ -45,10 +46,8 @@ export async function GET(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Get file URL from Supabase Storage
-    const { data: urlData } = await supabase.storage
-      .from('documents')
-      .createSignedUrl(document.file_path, 3600) // 1 hour expiration
+    // Get signed file URL using S3-compatible storage
+    const fileUrl = await documentsStorage.getSignedUrl(document.file_path, 3600) // 1 hour expiration
 
     // Transform document data for frontend
     const responseData = {
@@ -68,7 +67,7 @@ export async function GET(
       pages: document.pages,
       fieldsExtracted: document.fields_extracted || 0,
       processingHistory: document.processing_history || [],
-      fileUrl: urlData?.signedUrl,
+      fileUrl: fileUrl,
       tags: [], // Could be added later
       extractedFields: document.extracted_fields || []
     }

@@ -1,6 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { settingsAPI } from "@/lib/api"
+import { 
+  DEFAULT_SETTINGS,
+  getSettingDisplayName,
+  getSettingDescription,
+  type SettingCategory,
+  type UserSettings
+} from "@/lib/types/settings"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -43,60 +51,89 @@ import {
   Zap,
   AlertTriangle,
   Plus,
+  CheckCircle,
+  Brain,
+  Eye,
+  Palette,
 } from "lucide-react"
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile")
-  const [profile, setProfile] = useState({
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "+1 (555) 123-4567",
-    company: "Acme Corp",
-    role: "Finance Manager",
-    timezone: "America/New_York",
-    language: "en",
-  })
+  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: false,
-    processing: true,
-    errors: true,
-    weeklyReport: false,
-    marketing: false,
-  })
+  // Load settings on component mount
+  useEffect(() => {
+    loadSettings()
+  }, [])
 
-  const [security, setSecurity] = useState({
-    twoFactor: false,
-    sessionTimeout: "30",
-    loginNotifications: true,
-  })
-
-  const [processing, setProcessing] = useState({
-    autoProcess: true,
-    confidenceThreshold: "95",
-    retainOriginals: true,
-    compressionLevel: "medium",
-  })
-
-  const handleSaveProfile = () => {
-    // Save profile logic here
-    console.log("Saving profile:", profile)
+  const loadSettings = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await settingsAPI.list({ grouped: true })
+      if (response.settings && Object.keys(response.settings).length > 0) {
+        setSettings(response.settings as UserSettings)
+      }
+    } catch (err) {
+      console.error('Error loading settings:', err)
+      setError('Failed to load settings')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleSaveNotifications = () => {
-    // Save notifications logic here
-    console.log("Saving notifications:", notifications)
+  const handleSaveSettings = async (category: SettingCategory) => {
+    try {
+      setSaving(true)
+      setError(null)
+      setSuccessMessage(null)
+
+      // Convert category settings to array format for bulk update
+      const categorySettings = Object.entries(settings[category]).map(([key, value]) => ({
+        category,
+        key,
+        value
+      }))
+
+      await settingsAPI.bulkUpdate(categorySettings)
+      setSuccessMessage(`${category.charAt(0).toUpperCase() + category.slice(1)} settings saved successfully`)
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      console.error('Error saving settings:', err)
+      setError(err instanceof Error ? err.message : 'Failed to save settings')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleSaveSecurity = () => {
-    // Save security logic here
-    console.log("Saving security:", security)
+  const updateSetting = (category: SettingCategory, key: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [key]: value
+      }
+    }))
   }
 
-  const handleSaveProcessing = () => {
-    // Save processing logic here
-    console.log("Saving processing:", processing)
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-600 mt-1">Loading your settings...</p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -107,176 +144,767 @@ export default function SettingsPage() {
         <p className="text-gray-600 mt-1">
           Manage your account settings and preferences
         </p>
+        
+        {/* Status Messages */}
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
+              <p className="text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
+        
+        {successMessage && (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+              <p className="text-green-700">{successMessage}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="ai">AI</TabsTrigger>
           <TabsTrigger value="processing">Processing</TabsTrigger>
+          <TabsTrigger value="display">Display</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          <TabsTrigger value="advanced">Advanced</TabsTrigger>
         </TabsList>
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Information</CardTitle>
-                  <CardDescription>Update your personal details and preferences</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="w-20 h-20">
-                      <AvatarImage src="" alt="Profile" />
-                      <AvatarFallback className="text-xl">
-                        {profile.name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <Button variant="outline" size="sm">
-                        <Camera className="w-4 h-4 mr-2" />
-                        Change Photo
-                      </Button>
-                      <p className="text-sm text-gray-500 mt-1">
-                        JPG, PNG or GIF. Max size 2MB.
-                      </p>
-                    </div>
-                  </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Information</CardTitle>
+              <CardDescription>Update your personal details and preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="display_name">Display Name</Label>
+                  <Input
+                    id="display_name"
+                    value={settings.profile.display_name}
+                    onChange={(e) => updateSetting('profile', 'display_name', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bio">Bio</Label>
+                  <Input
+                    id="bio"
+                    value={settings.profile.bio || ''}
+                    onChange={(e) => updateSetting('profile', 'bio', e.target.value)}
+                    placeholder="Tell us about yourself"
+                  />
+                </div>
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input
-                        id="name"
-                        value={profile.name}
-                        onChange={(e) => setProfile({...profile, name: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profile.email}
-                        onChange={(e) => setProfile({...profile, email: e.target.value})}
-                      />
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="timezone">Timezone</Label>
+                  <Select 
+                    value={settings.profile.timezone} 
+                    onValueChange={(value) => updateSetting('profile', 'timezone', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTC">UTC</SelectItem>
+                      <SelectItem value="US/Eastern">Eastern Time</SelectItem>
+                      <SelectItem value="US/Central">Central Time</SelectItem>
+                      <SelectItem value="US/Mountain">Mountain Time</SelectItem>
+                      <SelectItem value="US/Pacific">Pacific Time</SelectItem>
+                      <SelectItem value="Europe/London">GMT</SelectItem>
+                      <SelectItem value="Europe/Paris">CET</SelectItem>
+                      <SelectItem value="Asia/Tokyo">JST</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="language">Language</Label>
+                  <Select 
+                    value={settings.profile.language} 
+                    onValueChange={(value) => updateSetting('profile', 'language', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="fr">French</SelectItem>
+                      <SelectItem value="de">German</SelectItem>
+                      <SelectItem value="it">Italian</SelectItem>
+                      <SelectItem value="pt">Portuguese</SelectItem>
+                      <SelectItem value="ja">Japanese</SelectItem>
+                      <SelectItem value="zh">Chinese</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        value={profile.phone}
-                        onChange={(e) => setProfile({...profile, phone: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="company">Company</Label>
-                      <Input
-                        id="company"
-                        value={profile.company}
-                        onChange={(e) => setProfile({...profile, company: e.target.value})}
-                      />
-                    </div>
-                  </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Email Notifications</Label>
+                  <p className="text-sm text-gray-500">Receive notifications via email</p>
+                </div>
+                <Switch
+                  checked={settings.profile.email_notifications}
+                  onCheckedChange={(checked) => updateSetting('profile', 'email_notifications', checked)}
+                />
+              </div>
 
-                  <div>
-                    <Label htmlFor="role">Role</Label>
-                    <Input
-                      id="role"
-                      value={profile.role}
-                      onChange={(e) => setProfile({...profile, role: e.target.value})}
-                    />
-                  </div>
+              <Button 
+                onClick={() => handleSaveSettings('profile')} 
+                disabled={saving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Profile'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="timezone">Timezone</Label>
-                      <Select value={profile.timezone} onValueChange={(value) => setProfile({...profile, timezone: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                          <SelectItem value="America/Chicago">Central Time</SelectItem>
-                          <SelectItem value="America/Denver">Mountain Time</SelectItem>
-                          <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
-                          <SelectItem value="Europe/London">GMT</SelectItem>
-                          <SelectItem value="Europe/Paris">CET</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="language">Language</Label>
-                      <Select value={profile.language} onValueChange={(value) => setProfile({...profile, language: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="es">Spanish</SelectItem>
-                          <SelectItem value="fr">French</SelectItem>
-                          <SelectItem value="de">German</SelectItem>
-                          <SelectItem value="it">Italian</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Preferences</CardTitle>
+              <CardDescription>Configure how you want to be notified</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Processing Complete</Label>
+                    <p className="text-sm text-gray-500">When document processing is finished</p>
                   </div>
+                  <Switch
+                    checked={settings.notifications.email_processing_complete}
+                    onCheckedChange={(checked) => updateSetting('notifications', 'email_processing_complete', checked)}
+                  />
+                </div>
 
-                  <Button onClick={handleSaveProfile} className="bg-primary hover:bg-primary/90">
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Changes
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Processing Failed</Label>
+                    <p className="text-sm text-gray-500">When errors occur during processing</p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications.email_processing_failed}
+                    onCheckedChange={(checked) => updateSetting('notifications', 'email_processing_failed', checked)}
+                  />
+                </div>
 
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Status</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Plan</span>
-                    <Badge>Pro</Badge>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Weekly Summary</Label>
+                    <p className="text-sm text-gray-500">Summary of your weekly activity</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Documents Processed</span>
-                    <span className="text-sm font-medium">2,847</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Storage Used</span>
-                    <span className="text-sm font-medium">12.4 GB</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Member Since</span>
-                    <span className="text-sm font-medium">Jan 2024</span>
-                  </div>
-                </CardContent>
-              </Card>
+                  <Switch
+                    checked={settings.notifications.email_weekly_summary}
+                    onCheckedChange={(checked) => updateSetting('notifications', 'email_weekly_summary', checked)}
+                  />
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Push Notifications</Label>
+                    <p className="text-sm text-gray-500">Receive push notifications on your devices</p>
+                  </div>
+                  <Switch
+                    checked={settings.notifications.push_notifications}
+                    onCheckedChange={(checked) => updateSetting('notifications', 'push_notifications', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notification_frequency">Notification Frequency</Label>
+                  <Select 
+                    value={settings.notifications.notification_frequency} 
+                    onValueChange={(value) => updateSetting('notifications', 'notification_frequency', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="immediate">Immediate</SelectItem>
+                      <SelectItem value="hourly">Hourly</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => handleSaveSettings('notifications')} 
+                disabled={saving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Notifications'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AI Tab */}
+        <TabsContent value="ai" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Processing Settings</CardTitle>
+              <CardDescription>Configure AI behavior and preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="preferred_provider">Preferred AI Provider</Label>
+                  <Select 
+                    value={settings.ai.preferred_provider} 
+                    onValueChange={(value) => updateSetting('ai', 'preferred_provider', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="openai">OpenAI</SelectItem>
+                      <SelectItem value="google">Google (Gemini)</SelectItem>
+                      <SelectItem value="groq">Groq</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="preferred_model">Preferred Model</Label>
+                  <Input
+                    id="preferred_model"
+                    value={settings.ai.preferred_model || ''}
+                    onChange={(e) => updateSetting('ai', 'preferred_model', e.target.value)}
+                    placeholder="Leave empty for default model"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confidence_threshold">Confidence Threshold ({settings.ai.confidence_threshold}%)</Label>
+                  <input
+                    type="range"
+                    id="confidence_threshold"
+                    min="0"
+                    max="100"
+                    value={settings.ai.confidence_threshold}
+                    onChange={(e) => updateSetting('ai', 'confidence_threshold', parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-gray-500">Minimum confidence score to accept AI extractions</p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Auto-process Uploads</Label>
+                    <p className="text-sm text-gray-500">Automatically process documents upon upload</p>
+                  </div>
+                  <Switch
+                    checked={settings.ai.auto_process_uploads}
+                    onCheckedChange={(checked) => updateSetting('ai', 'auto_process_uploads', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Save Processing History</Label>
+                    <p className="text-sm text-gray-500">Keep a history of AI processing results</p>
+                  </div>
+                  <Switch
+                    checked={settings.ai.save_processing_history}
+                    onCheckedChange={(checked) => updateSetting('ai', 'save_processing_history', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Enable Vision Processing</Label>
+                    <p className="text-sm text-gray-500">Allow AI to process image documents</p>
+                  </div>
+                  <Switch
+                    checked={settings.ai.enable_vision_processing}
+                    onCheckedChange={(checked) => updateSetting('ai', 'enable_vision_processing', checked)}
+                  />
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => handleSaveSettings('ai')} 
+                disabled={saving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Brain className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save AI Settings'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Processing Tab */}
+        <TabsContent value="processing" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Document Processing</CardTitle>
+              <CardDescription>Configure document processing behavior</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="max_file_size_mb">Max File Size (MB)</Label>
+                  <Input
+                    id="max_file_size_mb"
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={settings.processing.max_file_size_mb}
+                    onChange={(e) => updateSetting('processing', 'max_file_size_mb', parseInt(e.target.value))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Auto-detect Document Type</Label>
+                    <p className="text-sm text-gray-500">Automatically detect the type of uploaded documents</p>
+                  </div>
+                  <Switch
+                    checked={settings.processing.auto_detect_document_type}
+                    onCheckedChange={(checked) => updateSetting('processing', 'auto_detect_document_type', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="default_template_id">Default Template ID</Label>
+                  <Input
+                    id="default_template_id"
+                    value={settings.processing.default_template_id || ''}
+                    onChange={(e) => updateSetting('processing', 'default_template_id', e.target.value)}
+                    placeholder="Leave empty for no default"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Keep Original Files</Label>
+                    <p className="text-sm text-gray-500">Store original files after processing</p>
+                  </div>
+                  <Switch
+                    checked={settings.processing.keep_original_files}
+                    onCheckedChange={(checked) => updateSetting('processing', 'keep_original_files', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="processing_timeout_minutes">Processing Timeout (minutes)</Label>
+                  <Input
+                    id="processing_timeout_minutes"
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={settings.processing.processing_timeout_minutes}
+                    onChange={(e) => updateSetting('processing', 'processing_timeout_minutes', parseInt(e.target.value))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Batch Processing</Label>
+                    <p className="text-sm text-gray-500">Enable processing multiple documents at once</p>
+                  </div>
+                  <Switch
+                    checked={settings.processing.batch_processing_enabled}
+                    onCheckedChange={(checked) => updateSetting('processing', 'batch_processing_enabled', checked)}
+                  />
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => handleSaveSettings('processing')} 
+                disabled={saving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Processing Settings'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Display Tab */}
+        <TabsContent value="display" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Display Preferences</CardTitle>
+              <CardDescription>Customize the appearance and layout</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="theme">Theme</Label>
+                  <Select 
+                    value={settings.display.theme} 
+                    onValueChange={(value) => updateSetting('display', 'theme', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="dark">Dark</SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="density">Layout Density</Label>
+                  <Select 
+                    value={settings.display.density} 
+                    onValueChange={(value) => updateSetting('display', 'density', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="comfortable">Comfortable</SelectItem>
+                      <SelectItem value="compact">Compact</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Sidebar Collapsed</Label>
+                    <p className="text-sm text-gray-500">Start with sidebar collapsed</p>
+                  </div>
+                  <Switch
+                    checked={settings.display.sidebar_collapsed}
+                    onCheckedChange={(checked) => updateSetting('display', 'sidebar_collapsed', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Show Confidence Scores</Label>
+                    <p className="text-sm text-gray-500">Display AI confidence scores in the interface</p>
+                  </div>
+                  <Switch
+                    checked={settings.display.show_confidence_scores}
+                    onCheckedChange={(checked) => updateSetting('display', 'show_confidence_scores', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date_format">Date Format</Label>
+                  <Select 
+                    value={settings.display.date_format} 
+                    onValueChange={(value) => updateSetting('display', 'date_format', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                      <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                      <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="number_format">Number Format</Label>
+                  <Select 
+                    value={settings.display.number_format} 
+                    onValueChange={(value) => updateSetting('display', 'number_format', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="US">US (1,234.56)</SelectItem>
+                      <SelectItem value="EU">European (1.234,56)</SelectItem>
+                      <SelectItem value="international">International (1 234.56)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => handleSaveSettings('display')} 
+                disabled={saving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Palette className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Display Settings'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security Tab */}
+        <TabsContent value="security" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Security Settings</CardTitle>
+              <CardDescription>Manage your account security and privacy</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Two-Factor Authentication</Label>
+                    <p className="text-sm text-gray-500">Add an extra layer of security</p>
+                  </div>
+                  <Switch
+                    checked={settings.security.two_factor_enabled}
+                    onCheckedChange={(checked) => updateSetting('security', 'two_factor_enabled', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="session_timeout_minutes">Session Timeout (minutes)</Label>
+                  <Input
+                    id="session_timeout_minutes"
+                    type="number"
+                    min="15"
+                    max="1440"
+                    value={settings.security.session_timeout_minutes}
+                    onChange={(e) => updateSetting('security', 'session_timeout_minutes', parseInt(e.target.value))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Login Notifications</Label>
+                    <p className="text-sm text-gray-500">Get notified of new logins</p>
+                  </div>
+                  <Switch
+                    checked={settings.security.login_notifications}
+                    onCheckedChange={(checked) => updateSetting('security', 'login_notifications', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="data_retention_days">Data Retention (days)</Label>
+                  <Input
+                    id="data_retention_days"
+                    type="number"
+                    min="30"
+                    max="2555"
+                    value={settings.security.data_retention_days}
+                    onChange={(e) => updateSetting('security', 'data_retention_days', parseInt(e.target.value))}
+                  />
+                  <p className="text-xs text-gray-500">How long to keep your processed documents</p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Allow Data Export</Label>
+                    <p className="text-sm text-gray-500">Allow users to export their data</p>
+                  </div>
+                  <Switch
+                    checked={settings.security.allow_data_export}
+                    onCheckedChange={(checked) => updateSetting('security', 'allow_data_export', checked)}
+                  />
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => handleSaveSettings('security')} 
+                disabled={saving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Security Settings'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Integrations Tab */}
+        <TabsContent value="integrations" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Integration Settings</CardTitle>
+              <CardDescription>Configure external integrations and backups</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="webhook_url">Webhook URL</Label>
+                  <Input
+                    id="webhook_url"
+                    value={settings.integrations.webhook_url || ''}
+                    onChange={(e) => updateSetting('integrations', 'webhook_url', e.target.value)}
+                    placeholder="https://your-webhook-endpoint.com"
+                  />
+                  <p className="text-xs text-gray-500">URL to receive processing notifications</p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>API Access</Label>
+                    <p className="text-sm text-gray-500">Enable API access to your account</p>
+                  </div>
+                  <Switch
+                    checked={settings.integrations.api_access_enabled}
+                    onCheckedChange={(checked) => updateSetting('integrations', 'api_access_enabled', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Export Formats</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {['json', 'csv', 'excel', 'pdf'].map((format) => (
+                      <label key={format} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={settings.integrations.export_formats.includes(format)}
+                          onChange={(e) => {
+                            const formats = [...settings.integrations.export_formats]
+                            if (e.target.checked) {
+                              formats.push(format)
+                            } else {
+                              const index = formats.indexOf(format)
+                              if (index > -1) formats.splice(index, 1)
+                            }
+                            updateSetting('integrations', 'export_formats', formats)
+                          }}
+                        />
+                        <span className="text-sm">{format.toUpperCase()}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Auto-backup</Label>
+                    <p className="text-sm text-gray-500">Automatically backup your data</p>
+                  </div>
+                  <Switch
+                    checked={settings.integrations.auto_backup_enabled}
+                    onCheckedChange={(checked) => updateSetting('integrations', 'auto_backup_enabled', checked)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="backup_frequency">Backup Frequency</Label>
+                  <Select 
+                    value={settings.integrations.backup_frequency} 
+                    onValueChange={(value) => updateSetting('integrations', 'backup_frequency', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => handleSaveSettings('integrations')} 
+                disabled={saving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <LinkIcon className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Integration Settings'}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Advanced Tab */}
+        <TabsContent value="advanced" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Advanced Settings</CardTitle>
+              <CardDescription>Advanced features and experimental options</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Debug Mode</Label>
+                    <p className="text-sm text-gray-500">Enable detailed logging and debugging features</p>
+                  </div>
+                  <Switch
+                    checked={settings.advanced.debug_mode}
+                    onCheckedChange={(checked) => updateSetting('advanced', 'debug_mode', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Beta Features</Label>
+                    <p className="text-sm text-gray-500">Access to experimental features</p>
+                  </div>
+                  <Switch
+                    checked={settings.advanced.beta_features}
+                    onCheckedChange={(checked) => updateSetting('advanced', 'beta_features', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Telemetry</Label>
+                    <p className="text-sm text-gray-500">Help improve the service by sharing usage data</p>
+                  </div>
+                  <Switch
+                    checked={settings.advanced.telemetry_enabled}
+                    onCheckedChange={(checked) => updateSetting('advanced', 'telemetry_enabled', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Cache</Label>
+                    <p className="text-sm text-gray-500">Enable caching for better performance</p>
+                  </div>
+                  <Switch
+                    checked={settings.advanced.cache_enabled}
+                    onCheckedChange={(checked) => updateSetting('advanced', 'cache_enabled', checked)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Experimental AI Models</Label>
+                    <p className="text-sm text-gray-500">Access to cutting-edge AI models</p>
+                  </div>
+                  <Switch
+                    checked={settings.advanced.experimental_ai_models}
+                    onCheckedChange={(checked) => updateSetting('advanced', 'experimental_ai_models', checked)}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h4 className="font-medium mb-4">Danger Zone</h4>
+                <div className="space-y-3">
                   <Button variant="outline" className="w-full justify-start">
                     <Download className="w-4 h-4 mr-2" />
-                    Export Data
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import Settings
+                    Export All Data
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-red-600 hover:text-red-700">
+                      <Button variant="outline" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete Account
                       </Button>
@@ -297,429 +925,19 @@ export default function SettingsPage() {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Notifications Tab */}
-        <TabsContent value="notifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Choose how you want to be notified about important events</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h4 className="font-medium">General Notifications</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Email Notifications</Label>
-                      <p className="text-sm text-gray-500">Receive notifications via email</p>
-                    </div>
-                    <Switch
-                      checked={notifications.email}
-                      onCheckedChange={(checked) => setNotifications({...notifications, email: checked})}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Push Notifications</Label>
-                      <p className="text-sm text-gray-500">Receive push notifications on your devices</p>
-                    </div>
-                    <Switch
-                      checked={notifications.push}
-                      onCheckedChange={(checked) => setNotifications({...notifications, push: checked})}
-                    />
-                  </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h4 className="font-medium">Document Processing</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Processing Complete</Label>
-                      <p className="text-sm text-gray-500">When document processing is finished</p>
-                    </div>
-                    <Switch
-                      checked={notifications.processing}
-                      onCheckedChange={(checked) => setNotifications({...notifications, processing: checked})}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Processing Errors</Label>
-                      <p className="text-sm text-gray-500">When errors occur during processing</p>
-                    </div>
-                    <Switch
-                      checked={notifications.errors}
-                      onCheckedChange={(checked) => setNotifications({...notifications, errors: checked})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="font-medium">Reports & Updates</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Weekly Reports</Label>
-                      <p className="text-sm text-gray-500">Summary of your weekly activity</p>
-                    </div>
-                    <Switch
-                      checked={notifications.weeklyReport}
-                      onCheckedChange={(checked) => setNotifications({...notifications, weeklyReport: checked})}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Marketing Updates</Label>
-                      <p className="text-sm text-gray-500">Product updates and feature announcements</p>
-                    </div>
-                    <Switch
-                      checked={notifications.marketing}
-                      onCheckedChange={(checked) => setNotifications({...notifications, marketing: checked})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Button onClick={handleSaveNotifications} className="bg-primary hover:bg-primary/90">
-                <Save className="w-4 h-4 mr-2" />
-                Save Preferences
+              <Button 
+                onClick={() => handleSaveSettings('advanced')} 
+                disabled={saving}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <SettingsIcon className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Advanced Settings'}
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* Security Tab */}
-        <TabsContent value="security" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Authentication</CardTitle>
-                <CardDescription>Manage your account security settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Two-Factor Authentication</Label>
-                    <p className="text-sm text-gray-500">Add an extra layer of security</p>
-                  </div>
-                  <Switch
-                    checked={security.twoFactor}
-                    onCheckedChange={(checked) => setSecurity({...security, twoFactor: checked})}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
-                  <Select value={security.sessionTimeout} onValueChange={(value) => setSecurity({...security, sessionTimeout: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 minutes</SelectItem>
-                      <SelectItem value="30">30 minutes</SelectItem>
-                      <SelectItem value="60">1 hour</SelectItem>
-                      <SelectItem value="240">4 hours</SelectItem>
-                      <SelectItem value="480">8 hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Login Notifications</Label>
-                    <p className="text-sm text-gray-500">Get notified of new logins</p>
-                  </div>
-                  <Switch
-                    checked={security.loginNotifications}
-                    onCheckedChange={(checked) => setSecurity({...security, loginNotifications: checked})}
-                  />
-                </div>
-
-                <Button onClick={handleSaveSecurity} className="bg-primary hover:bg-primary/90">
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Security Settings
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Password & Access</CardTitle>
-                <CardDescription>Manage your password and account access</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button variant="outline" className="w-full justify-start">
-                  <Key className="w-4 h-4 mr-2" />
-                  Change Password
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Smartphone className="w-4 h-4 mr-2" />
-                  Manage Devices
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Security Report
-                </Button>
-                
-                <div className="pt-4 border-t">
-                  <h4 className="font-medium mb-2">Recent Login Activity</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Chrome on Mac</span>
-                      <span className="text-gray-500">2 hours ago</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Safari on iPhone</span>
-                      <span className="text-gray-500">1 day ago</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Firefox on Windows</span>
-                      <span className="text-gray-500">3 days ago</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Processing Tab */}
-        <TabsContent value="processing" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Document Processing Settings</CardTitle>
-              <CardDescription>Configure how your documents are processed</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Processing Options</h4>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Auto-Process Uploads</Label>
-                        <p className="text-sm text-gray-500">Automatically process documents when uploaded</p>
-                      </div>
-                      <Switch
-                        checked={processing.autoProcess}
-                        onCheckedChange={(checked) => setProcessing({...processing, autoProcess: checked})}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confidence-threshold">Confidence Threshold</Label>
-                      <Select value={processing.confidenceThreshold} onValueChange={(value) => setProcessing({...processing, confidenceThreshold: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="90">90% - More results, less accuracy</SelectItem>
-                          <SelectItem value="95">95% - Balanced</SelectItem>
-                          <SelectItem value="98">98% - High accuracy</SelectItem>
-                          <SelectItem value="99">99% - Maximum accuracy</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-gray-500">Documents below this threshold will be flagged for review</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-medium">Storage & Quality</h4>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Retain Original Files</Label>
-                        <p className="text-sm text-gray-500">Keep original uploaded documents</p>
-                      </div>
-                      <Switch
-                        checked={processing.retainOriginals}
-                        onCheckedChange={(checked) => setProcessing({...processing, retainOriginals: checked})}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="compression-level">Image Compression</Label>
-                      <Select value={processing.compressionLevel} onValueChange={(value) => setProcessing({...processing, compressionLevel: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low - Best quality, larger files</SelectItem>
-                          <SelectItem value="medium">Medium - Balanced</SelectItem>
-                          <SelectItem value="high">High - Smaller files, reduced quality</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Button onClick={handleSaveProcessing} className="bg-primary hover:bg-primary/90">
-                <Save className="w-4 h-4 mr-2" />
-                Save Processing Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Integrations Tab */}
-        <TabsContent value="integrations" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>API Access</CardTitle>
-                <CardDescription>Manage your API keys and integrations</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">API Key</span>
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
-                  <div className="font-mono text-sm bg-white p-2 rounded border">
-                    fp_••••••••••••••••••••••••••••••••
-                  </div>
-                  <div className="flex space-x-2 mt-3">
-                    <Button size="sm" variant="outline">
-                      <Key className="w-4 h-4 mr-2" />
-                      Regenerate
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <LinkIcon className="w-4 h-4 mr-2" />
-                      API Docs
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Usage This Month</Label>
-                  <div className="text-2xl font-bold">2,847 requests</div>
-                  <p className="text-sm text-gray-500">47,153 remaining</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Webhooks</CardTitle>
-                <CardDescription>Configure webhook endpoints for real-time updates</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm">Processing Complete</p>
-                      <p className="text-xs text-gray-500">https://api.example.com/webhooks</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="outline" className="text-green-600">Active</Badge>
-                      <Button size="sm" variant="ghost">Edit</Button>
-                    </div>
-                  </div>
-                </div>
-
-                <Button variant="outline" className="w-full">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Webhook
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Cloud Storage</CardTitle>
-                <CardDescription>Connect your cloud storage providers</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-                        <Globe className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Google Drive</p>
-                        <p className="text-sm text-gray-500">Connected</p>
-                      </div>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-500 rounded flex items-center justify-center">
-                        <Globe className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Dropbox</p>
-                        <p className="text-sm text-gray-500">Not connected</p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline">Connect</Button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center">
-                        <Globe className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium">OneDrive</p>
-                        <p className="text-sm text-gray-500">Not connected</p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline">Connect</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Accounting Software</CardTitle>
-                <CardDescription>Integrate with your accounting tools</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
-                        <Zap className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium">QuickBooks</p>
-                        <p className="text-sm text-gray-500">Not connected</p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline">Connect</Button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-700 rounded flex items-center justify-center">
-                        <Zap className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Xero</p>
-                        <p className="text-sm text-gray-500">Not connected</p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline">Connect</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
       </Tabs>
     </div>

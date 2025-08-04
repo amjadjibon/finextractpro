@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { env } from '@/lib/env'
+import { documentsStorage, storageUtils } from '@/lib/storage/s3-client'
 import { documentParser, DocumentParsingResult } from '@/lib/ai/parser'
 import { dataFormatter } from '@/lib/ai/formatter'
 import { validateAIConfig } from '@/lib/ai/config'
@@ -55,30 +55,25 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Generate unique filename
-    const timestamp = Date.now()
-    const userId = user.id
-    const fileExtension = file.name.split('.').pop() || fileType.ext
-    const fileName = `${userId}_${timestamp}.${fileExtension}`
-    const filePath = `documents/${userId}/${fileName}`
+    // Generate unique file path using S3-compatible storage
+    const filePath = storageUtils.generateUserFilePath(user.id, file.name)
+    
+    // Upload file using S3-compatible storage client
+    const uploadResult = await documentsStorage.upload(filePath, file, {
+      contentType: file.type,
+      cacheControl: '3600',
+      upsert: false,
+      metadata: {
+        originalName: file.name,
+        uploadedBy: user.id,
+        documentType: documentType || 'unknown'
+      }
+    })
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-
-    // Upload file to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, buffer, {
-        contentType: file.type,
-        cacheControl: '3600',
-        upsert: false
-      })
-
-    if (uploadError) {
-      console.error('Storage upload error:', uploadError)
+    if (!uploadResult.success) {
+      console.error('S3 upload error:', uploadResult.error)
       return NextResponse.json({ 
-        error: 'Failed to upload file to storage' 
+        error: uploadResult.error || 'Failed to upload file to storage' 
       }, { status: 500 })
     }
 
@@ -93,7 +88,7 @@ export async function POST(request: NextRequest) {
 
       if (!templateError && templateData) {
         // Check if user has access to this template (owner or public)
-        if (templateData.user_id === userId || templateData.is_public) {
+        if (templateData.user_id === user.id || templateData.is_public) {
           validatedTemplateId = templateId
         }
       }
@@ -104,7 +99,7 @@ export async function POST(request: NextRequest) {
       id: crypto.randomUUID(),
       name: file.name,
       original_name: file.name,
-      file_path: uploadData.path,
+      file_path: uploadResult.path || filePath,
       file_size: file.size,
       file_type: file.type,
       document_type: documentType || 'unknown',
@@ -112,7 +107,7 @@ export async function POST(request: NextRequest) {
       template_id: validatedTemplateId,
       description: description || null,
       status: 'uploaded',
-      user_id: userId,
+      user_id: user.id,
       upload_date: new Date().toISOString(),
       processed_date: null,
       confidence: null,

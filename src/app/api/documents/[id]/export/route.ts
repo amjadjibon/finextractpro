@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { documentsStorage } from '@/lib/storage/s3-client'
 import { documentParser } from '@/lib/ai/parser'
 import { dataFormatter, ExportFormat } from '@/lib/ai/formatter'
 
@@ -75,11 +76,9 @@ export async function GET(
 
     // If we don't have extracted fields stored, we might need to re-process
     if (!document.extracted_fields || document.extracted_fields.length === 0) {
-      // Get the file from storage and re-process if needed
+      // Get the file from S3-compatible storage and re-process if needed
       try {
-        const { data: fileData } = await supabase.storage
-          .from('documents')
-          .download(document.file_path)
+        const { data: fileData } = await documentsStorage.download(document.file_path)
         
         if (fileData) {
           // Convert blob to file-like object
