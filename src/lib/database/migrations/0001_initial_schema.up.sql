@@ -85,9 +85,13 @@ CREATE OR REPLACE TRIGGER update_documents_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- Create storage bucket for documents (if not exists)
+-- Create storage buckets (if not exists)
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('documents', 'documents', false)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('exports', 'exports', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Enable RLS for documents table
@@ -124,6 +128,27 @@ CREATE POLICY "Users can view own documents" ON storage.objects
 CREATE POLICY "Users can delete own documents" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'documents' 
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+-- Storage policies for exports bucket
+-- Path structure: {userId}/{fileName}  
+-- User ID is at index [1] (first folder in the path)
+CREATE POLICY "Users can upload own exports" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'exports' 
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can view own exports" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'exports' 
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+CREATE POLICY "Users can delete own exports" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'exports' 
     AND auth.uid()::text = (storage.foldername(name))[1]
   );
 

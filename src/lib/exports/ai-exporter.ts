@@ -172,7 +172,8 @@ export class AIExporter {
       })
 
       if (!uploadResult.success) {
-        throw new Error(`Failed to upload export file: ${uploadResult.error}`)
+        // Re-throw storage errors directly (they already have good messages)
+        throw new Error(uploadResult.error || 'Failed to upload export file')
       }
 
       // Get signed URL for download

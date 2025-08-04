@@ -36,6 +36,23 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
   ArrowLeft,
   FileText,
   Download,
@@ -56,6 +73,10 @@ import {
   User,
   Tag,
   Settings,
+  FileSpreadsheet,
+  FileJson,
+  Archive,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -301,6 +322,15 @@ export default function DocumentViewPage() {
   const [editedValues, setEditedValues] = useState<{[key: string]: string}>({})
   const [zoom, setZoom] = useState(100)
   const [rotation, setRotation] = useState(0)
+  
+  // Export dialog state
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState<'json' | 'csv' | 'excel'>('json')
+  const [exportName, setExportName] = useState('')
+  const [exportDescription, setExportDescription] = useState('')
+  const [selectedFields, setSelectedFields] = useState<string[]>([])
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportOptions, setExportOptions] = useState<any>(null)
 
   useEffect(() => {
     const fetchDocument = async () => {
@@ -480,6 +510,99 @@ export default function DocumentViewPage() {
   const handleDownload = () => {
     if (document?.fileUrl) {
       window.open(document.fileUrl, '_blank')
+    }
+  }
+
+  // Export handlers
+  const fetchExportOptions = async (documentId: string) => {
+    try {
+      const response = await fetch(`/api/documents/${documentId}/export`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch export options')
+      }
+      const data = await response.json()
+      setExportOptions(data)
+      setExportName(data.exportOptions.suggestedName)
+      setExportDescription(`${exportFormat.toUpperCase()} export of ${data.document.name}`)
+      setSelectedFields(data.exportOptions.availableFields.map((field: any) => field.name))
+    } catch (error) {
+      console.error('Error fetching export options:', error)
+    }
+  }
+
+  const handleExportClick = () => {
+    if (document) {
+      fetchExportOptions(document.id)
+      setIsExportDialogOpen(true)
+    }
+  }
+
+  const handleExport = async () => {
+    if (!document) return
+
+    setIsExporting(true)
+    
+    try {
+      const response = await fetch(`/api/documents/${document.id}/export`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          format: exportFormat,
+          exportName,
+          description: exportDescription,
+          includeFields: selectedFields,
+          settings: {
+            includeMetadata: true
+          }
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Export failed')
+      }
+
+      const result = await response.json()
+      
+      // Close dialog
+      setIsExportDialogOpen(false)
+      
+      // Show success message
+      alert(`Export completed successfully! File: ${result.file_name}`)
+      
+      // Download the file immediately
+      if (result.download_url) {
+        window.open(result.download_url, '_blank')
+      }
+      
+    } catch (error) {
+      console.error('Export error:', error)
+      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleFieldToggle = (fieldName: string) => {
+    setSelectedFields(prev => 
+      prev.includes(fieldName) 
+        ? prev.filter(f => f !== fieldName)
+        : [...prev, fieldName]
+    )
+  }
+
+  const getFormatIcon = (format: string) => {
+    switch (format) {
+      case 'json':
+        return <FileJson className="w-4 h-4" />
+      case 'csv':
+        return <FileSpreadsheet className="w-4 h-4" />
+      case 'excel':
+        return <Archive className="w-4 h-4" />
+      default:
+        return <FileText className="w-4 h-4" />
     }
   }
 
@@ -850,7 +973,7 @@ export default function DocumentViewPage() {
                 <Download className="w-4 h-4 mr-2" />
                 Download Original
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" onClick={handleExportClick}>
                 <FileText className="w-4 h-4 mr-2" />
                 Export Data
               </Button>
@@ -899,6 +1022,163 @@ export default function DocumentViewPage() {
           </Card>
         </div>
       </div>
+
+      {/* Export Dialog */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Export Document</DialogTitle>
+            <DialogDescription>
+              Export "{document?.name}" in your preferred format with AI-powered data structuring
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Export Format Selection */}
+            <div>
+              <Label className="text-sm font-medium">Export Format</Label>
+              <Select value={exportFormat} onValueChange={(value: 'json' | 'csv' | 'excel') => setExportFormat(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose export format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="json">
+                    <div className="flex items-center">
+                      <FileJson className="w-4 h-4 mr-2" />
+                      JSON - Structured data format
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="csv">
+                    <div className="flex items-center">
+                      <FileSpreadsheet className="w-4 h-4 mr-2" />
+                      CSV - Spreadsheet compatible
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="excel">
+                    <div className="flex items-center">
+                      <Archive className="w-4 h-4 mr-2" />
+                      Excel - Advanced worksheets
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Export Name */}
+            <div>
+              <Label htmlFor="export-name" className="text-sm font-medium">Export Name</Label>
+              <Input
+                id="export-name"
+                value={exportName}
+                onChange={(e) => setExportName(e.target.value)}
+                placeholder="Enter export name"
+              />
+            </div>
+
+            {/* Export Description */}
+            <div>
+              <Label htmlFor="export-description" className="text-sm font-medium">Description (Optional)</Label>
+              <Textarea
+                id="export-description"
+                value={exportDescription}
+                onChange={(e) => setExportDescription(e.target.value)}
+                placeholder="Describe this export..."
+                rows={2}
+              />
+            </div>
+
+            {/* Field Selection */}
+            {exportOptions?.exportOptions?.availableFields && (
+              <div>
+                <Label className="text-sm font-medium">Select Fields to Include</Label>
+                <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border rounded p-3">
+                  <div className="flex items-center space-x-2 pb-2 border-b">
+                    <Checkbox
+                      id="select-all"
+                      checked={selectedFields.length === exportOptions.exportOptions.availableFields.length}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedFields(exportOptions.exportOptions.availableFields.map((f: any) => f.name))
+                        } else {
+                          setSelectedFields([])
+                        }
+                      }}
+                    />
+                    <Label htmlFor="select-all" className="text-sm font-medium">
+                      Select All ({exportOptions.exportOptions.availableFields.length} fields)
+                    </Label>
+                  </div>
+                  {exportOptions.exportOptions.availableFields.map((field: any) => (
+                    <div key={field.name} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={field.name}
+                        checked={selectedFields.includes(field.name)}
+                        onCheckedChange={() => handleFieldToggle(field.name)}
+                      />
+                      <Label htmlFor={field.name} className="text-sm flex-1">
+                        {field.name}
+                      </Label>
+                      <Badge variant={field.confidence >= 90 ? "default" : field.confidence >= 70 ? "secondary" : "outline"}>
+                        {field.confidence}%
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Export Summary */}
+            {exportOptions && (
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-sm mb-2">Export Summary</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">Document:</span>
+                    <span className="ml-2 font-medium">{exportOptions.document.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Type:</span>
+                    <span className="ml-2 font-medium capitalize">{exportOptions.document.type}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Fields:</span>
+                    <span className="ml-2 font-medium">{selectedFields.length} selected</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Format:</span>
+                    <div className="ml-2 flex items-center">
+                      {getFormatIcon(exportFormat)}
+                      <span className="ml-1 font-medium">{exportFormat.toUpperCase()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleExport} 
+              disabled={isExporting || !exportName || selectedFields.length === 0}
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating Export...
+                </>
+              ) : (
+                <>
+                  {getFormatIcon(exportFormat)}
+                  <span className="ml-2">Export as {exportFormat.toUpperCase()}</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

@@ -1,9 +1,172 @@
+/**
+ * Single Document Export API Route
+ * 
+ * Handles exporting individual documents with AI-powered formatting
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { documentsStorage } from '@/lib/storage/s3-client'
-import { documentParser } from '@/lib/ai/parser'
-import { dataFormatter, ExportFormat } from '@/lib/ai/formatter'
+import { aiExporter, type ExportRequest, type DocumentExportData } from '@/lib/exports/ai-exporter'
 
+// POST /api/documents/[id]/export - Export single document
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = await createClient()
+    
+    // Get user from session
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const {
+      format = 'json',
+      exportName,
+      description,
+      includeFields = [],
+      settings = {}
+    } = body
+
+    // Validate format
+    const validFormats = ['json', 'csv', 'excel']
+    if (!validFormats.includes(format)) {
+      return NextResponse.json({ error: 'Invalid export format' }, { status: 400 })
+    }
+
+    // Get the document from database
+    const { data: document, error: fetchError } = await supabase
+      .from('documents')
+      .select('id, name, document_type, status, extracted_fields, confidence, pages, processed_date, template, description')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+      }
+      console.error('Database error:', fetchError)
+      return NextResponse.json({ error: 'Failed to fetch document' }, { status: 500 })
+    }
+
+    // Check if document is processed
+    if (document.status !== 'completed') {
+      return NextResponse.json({ 
+        error: 'Document is not fully processed yet',
+        status: document.status 
+      }, { status: 400 })
+    }
+
+    // Transform document for AI processing
+    const documentForExport: DocumentExportData = {
+      id: document.id,
+      name: document.name,
+      type: document.document_type || 'unknown',
+      status: document.status,
+      extractedFields: document.extracted_fields || [],
+      metadata: {
+        confidence: document.confidence,
+        processingDate: document.processed_date,
+        pages: document.pages,
+        template: document.template
+      }
+    }
+
+    // Create export name if not provided
+    const finalExportName = exportName || `${document.name}_export_${Date.now()}`
+    const finalDescription = description || `${format.toUpperCase()} export of ${document.name}`
+
+    // Create AI export request
+    const exportRequest: ExportRequest = {
+      userId: user.id,
+      name: finalExportName,
+      description: finalDescription,
+      format: format as 'json' | 'csv' | 'excel',
+      documents: [documentForExport], // Single document
+      filters: {
+        documentType: document.document_type,
+        status: 'completed'
+      },
+      includeFields: includeFields.length > 0 ? includeFields : undefined,
+      settings: {
+        groupByType: false, // Single document, no grouping needed
+        includeMetadata: true,
+        ...settings
+      }
+    }
+
+    console.log(`🚀 Starting single document export: ${document.name} (${format})`)
+
+    // Generate export using AI
+    const exportResult = await aiExporter.generateExport(exportRequest)
+
+    if (!exportResult.success) {
+      console.error('Export generation failed:', exportResult.error)
+      return NextResponse.json({ 
+        error: 'Export generation failed',
+        details: exportResult.error 
+      }, { status: 500 })
+    }
+
+    // Create export job record in database for tracking
+    const exportJob = {
+      user_id: user.id,
+      name: finalExportName,
+      description: finalDescription,
+      type: 'document_export',
+      format: format,
+      filters: { document_id: id },
+      include_fields: includeFields,
+      settings: settings,
+      status: 'completed',
+      file_path: exportResult.filePath,
+      file_size: exportResult.fileSize || 0,
+      records_count: 1, // Single document
+      download_count: 0,
+      retry_count: 0,
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString()
+    }
+
+    const { data: createdExport, error: insertError } = await supabase
+      .from('exports')
+      .insert(exportJob)
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('Error creating export record:', insertError)
+      // Don't fail the request since the export was generated successfully
+    }
+
+    console.log(`✅ Single document export completed: ${exportResult.fileName}`)
+
+    return NextResponse.json({
+      success: true,
+      export: createdExport || exportJob,
+      file_url: exportResult.fileUrl,
+      file_name: exportResult.fileName,
+      file_size: exportResult.fileSize,
+      download_url: exportResult.fileUrl,
+      message: `Document "${document.name}" exported successfully as ${format.toUpperCase()}`
+    }, { status: 200 })
+
+  } catch (error) {
+    console.error('Single document export error:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
+  }
+}
+
+// GET /api/documents/[id]/export - Get export options for document
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,174 +178,55 @@ export async function GET(
     // Get user from session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!user) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const documentId = id
-
-    if (!documentId) {
-      return NextResponse.json({ error: 'Document ID is required' }, { status: 400 })
-    }
-
-    // Get export format from query params
-    const { searchParams } = new URL(request.url)
-    const format = (searchParams.get('format') || 'json') as ExportFormat
-    const download = searchParams.get('download') === 'true'
-
-    // Get document from database
-    const { data: document, error: dbError } = await supabase
+    // Get the document from database
+    const { data: document, error: fetchError } = await supabase
       .from('documents')
-      .select('*')
-      .eq('id', documentId)
-      .eq('user_id', user.id) // Ensure user owns the document
+      .select('id, name, document_type, status, extracted_fields, confidence, pages, template')
+      .eq('id', id)
+      .eq('user_id', user.id)
       .single()
 
-    if (dbError) {
-      if (dbError.code === 'PGRST116') {
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Document not found' }, { status: 404 })
       }
-      console.error('Database error:', dbError)
+      console.error('Database error:', fetchError)
       return NextResponse.json({ error: 'Failed to fetch document' }, { status: 500 })
     }
 
-    if (!document) {
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
-    }
+    // Extract available fields for selection
+    const availableFields = document.extracted_fields?.map((field: any) => ({
+      name: field.name,
+      type: field.type,
+      confidence: field.confidence,
+      hasValue: !!field.value
+    })) || []
 
-    // Check if document has been processed
-    if (document.status !== 'completed') {
-      return NextResponse.json({ 
-        error: `Document is not ready for export. Status: ${document.status}` 
-      }, { status: 400 })
-    }
-
-    // Re-create parsing result from stored data
-    // In a real implementation, you might store the full parsing result
-    // For now, we'll create a minimal result from what we have
-    const parsingResult = {
-      summary: `Processed ${document.document_type} document`,
-      document_type: document.document_type,
-      confidence: document.confidence || 0,
-      extracted_fields: document.extracted_fields || [],
-      structured_data: document.structured_data || {},
-      metadata: {
-        pages: document.pages || 1,
-        processing_time: 0,
-        provider: 'stored',
-        model: 'stored'
+    return NextResponse.json({
+      document: {
+        id: document.id,
+        name: document.name,
+        type: document.document_type,
+        status: document.status,
+        confidence: document.confidence,
+        pages: document.pages,
+        template: document.template,
+        fieldsCount: availableFields.length
+      },
+      exportOptions: {
+        availableFormats: ['json', 'csv', 'excel'],
+        availableFields: availableFields,
+        suggestedName: `${document.name}_export`,
+        canExport: document.status === 'completed' && availableFields.length > 0
       }
-    }
-
-    // If we don't have extracted fields stored, we might need to re-process
-    if (!document.extracted_fields || document.extracted_fields.length === 0) {
-      // Get the file from S3-compatible storage and re-process if needed
-      try {
-        const { data: fileData } = await documentsStorage.download(document.file_path)
-        
-        if (fileData) {
-          // Convert blob to file-like object
-          const file = new File([fileData], document.name, { type: document.file_type })
-          
-          // Get template if used
-          let template = null
-          if (document.template_id) {
-            const { data: templateData } = await supabase
-              .from('templates')
-              .select('*')
-              .eq('id', document.template_id)
-              .single()
-            
-            if (templateData) {
-              template = {
-                id: templateData.id,
-                name: templateData.name,
-                document_type: templateData.document_type,
-                fields: templateData.fields,
-                settings: templateData.settings
-              }
-            }
-          }
-          
-          // Re-process the document
-          const freshParsingResult = await documentParser.parseDocumentWithFile(file, template)
-          
-          // Use fresh results
-          Object.assign(parsingResult, freshParsingResult)
-          
-          // Update document with fresh results
-          await supabase
-            .from('documents')
-            .update({
-              confidence: freshParsingResult.confidence,
-              fields_extracted: freshParsingResult.extracted_fields.length,
-              processed_date: new Date().toISOString()
-            })
-            .eq('id', documentId)
-        }
-      } catch (reprocessError) {
-        console.warn('Failed to re-process document for export:', reprocessError)
-        // Continue with stored data
-      }
-    }
-
-    // Format data according to requested format
-    let formattedData
-    
-    try {
-      switch (format) {
-        case 'csv':
-          formattedData = dataFormatter.toCSV(parsingResult)
-          break
-        case 'structured':
-          formattedData = dataFormatter.toStructured(parsingResult)
-          break
-        case 'json':
-        default:
-          formattedData = dataFormatter.toJSON(parsingResult)
-          break
-      }
-    } catch (formatError) {
-      console.error('Data formatting error:', formatError)
-      return NextResponse.json({ error: 'Failed to format data' }, { status: 500 })
-    }
-
-    // Return data for download or preview
-    if (download) {
-      const headers = new Headers({
-        'Content-Type': formattedData.mimeType,
-        'Content-Disposition': `attachment; filename="${formattedData.filename}"`
-      })
-      
-      return new NextResponse(formattedData.data as string, {
-        status: 200,
-        headers
-      })
-    } else {
-      // Return metadata and preview
-      return NextResponse.json({
-        success: true,
-        export: {
-          format: formattedData.format,
-          filename: formattedData.filename,
-          size: new Blob([formattedData.data as string]).size,
-          mimeType: formattedData.mimeType,
-          preview: typeof formattedData.data === 'string' 
-            ? formattedData.data.slice(0, 1000) + (formattedData.data.length > 1000 ? '...' : '')
-            : JSON.stringify(formattedData.data).slice(0, 1000) + '...'
-        },
-        document: {
-          id: document.id,
-          name: document.name,
-          type: document.document_type,
-          confidence: parsingResult.confidence,
-          fieldsExtracted: parsingResult.extracted_fields.length
-        }
-      })
-    }
+    })
 
   } catch (error) {
-    console.error('Export error:', error)
+    console.error('Document export options error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

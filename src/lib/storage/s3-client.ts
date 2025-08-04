@@ -39,9 +39,43 @@ export interface StorageObject {
 
 export class S3CompatibleStorage {
   private bucketName: string
+  private bucketInitialized: boolean = false
   
   constructor(bucketName: string = 'documents') {
     this.bucketName = bucketName
+  }
+
+  /**
+   * Check if bucket exists (but don't create it)
+   */
+  private async ensureBucketExists(): Promise<void> {
+    if (this.bucketInitialized) {
+      return
+    }
+
+    try {
+      const supabase = await createClient()
+      
+      // Check if bucket exists
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets()
+      
+      if (listError) {
+        console.warn(`Could not list buckets: ${listError.message}`)
+        this.bucketInitialized = true // Skip further checks
+        return
+      }
+
+      const bucketExists = buckets?.some(bucket => bucket.id === this.bucketName)
+      
+      if (!bucketExists) {
+        throw new Error(`Storage bucket '${this.bucketName}' does not exist. Please create it manually in your Supabase dashboard:\n1. Go to Storage\n2. Click 'Create bucket'\n3. Name: '${this.bucketName}'\n4. Keep it private (not public)\n5. Click 'Create bucket'`)
+      }
+
+      this.bucketInitialized = true
+    } catch (error) {
+      console.error(`Error checking bucket ${this.bucketName}:`, error)
+      throw error
+    }
   }
 
   /**
@@ -53,6 +87,9 @@ export class S3CompatibleStorage {
     options: UploadOptions = {}
   ): Promise<UploadResult> {
     try {
+      // Ensure bucket exists first
+      await this.ensureBucketExists()
+      
       const supabase = await createClient()
       
       // Validate supabase client
@@ -120,6 +157,7 @@ export class S3CompatibleStorage {
    */
   async download(path: string): Promise<{ data: Blob | null, error: string | null }> {
     try {
+      await this.ensureBucketExists()
       const supabase = await createClient()
       
       // Validate supabase client
@@ -149,6 +187,7 @@ export class S3CompatibleStorage {
    */
   async getSignedUrl(path: string, expiresIn: number = 3600): Promise<string | null> {
     try {
+      await this.ensureBucketExists()
       const supabase = await createClient()
       
       // Validate supabase client
