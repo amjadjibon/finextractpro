@@ -1,4 +1,5 @@
 "use client"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/components/providers/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -16,40 +17,105 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
+interface DashboardStats {
+  totalDocuments: number
+  processedToday: number
+  pendingReview: number
+  totalExports: number
+}
+
+interface RecentActivity {
+  id: string
+  type: string
+  document: string
+  status: string
+  timestamp: string
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
+  const [stats, setStats] = useState<DashboardStats>({
+    totalDocuments: 0,
+    processedToday: 0,
+    pendingReview: 0,
+    totalExports: 0
+  })
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Mock data - replace with real data from your API
-  const stats = {
-    totalDocuments: 24,
-    processedToday: 8,
-    pendingReview: 3,
-    totalExports: 12
-  }
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch documents statistics
+        const documentsResponse = await fetch('/api/documents?limit=100')
+        if (documentsResponse.ok) {
+          const documentsData = await documentsResponse.json()
+          const documents = documentsData.documents || []
+          
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          
+          const processedToday = documents.filter((doc: any) => {
+            if (!doc.processedDate) return false
+            const processedDate = new Date(doc.processedDate)
+            processedDate.setHours(0, 0, 0, 0)
+            return processedDate.getTime() === today.getTime()
+          }).length
+          
+          const pendingReview = documents.filter((doc: any) => 
+            doc.status === 'processing' || doc.status === 'uploaded'
+          ).length
 
-  const recentActivity = [
-    {
-      id: 1,
-      type: "upload",
-      document: "Invoice_2024_001.pdf",
-      status: "completed",
-      timestamp: "2 hours ago"
-    },
-    {
-      id: 2,
-      type: "export",
-      document: "Financial_Report_Q1.xlsx",
-      status: "completed",
-      timestamp: "4 hours ago"
-    },
-    {
-      id: 3,
-      type: "processing",
-      document: "Receipt_Store_ABC.jpg",
-      status: "pending",
-      timestamp: "6 hours ago"
+          // Fetch exports statistics
+          const exportsResponse = await fetch('/api/exports?limit=100')
+          let totalExports = 0
+          if (exportsResponse.ok) {
+            const exportsData = await exportsResponse.json()
+            totalExports = exportsData.pagination?.total || 0
+          }
+
+          setStats({
+            totalDocuments: documentsData.pagination?.total || documents.length,
+            processedToday,
+            pendingReview,
+            totalExports
+          })
+
+          // Create recent activity from documents
+          const recentDocs = documents
+            .sort((a: any, b: any) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())
+            .slice(0, 5)
+            .map((doc: any) => ({
+              id: doc.id,
+              type: doc.status === 'completed' ? 'processing' : 'upload',
+              document: doc.name,
+              status: doc.status,
+              timestamp: formatTimeAgo(doc.uploadDate)
+            }))
+
+          setRecentActivity(recentDocs)
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchDashboardData()
+  }, [])
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const days = Math.floor(hours / 24)
+    
+    if (days > 0) return `${days} day${days === 1 ? '' : 's'} ago`
+    if (hours > 0) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+    return 'Just now'
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -78,6 +144,27 @@ export default function Dashboard() {
     )
   }
 
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="mb-8">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-4 bg-gray-200 rounded w-2/3 mb-2 animate-pulse"></div>
+                <div className="h-8 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Welcome Header */}
@@ -99,7 +186,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalDocuments}</div>
-            <p className="text-xs text-muted-foreground">+2 from yesterday</p>
+            <p className="text-xs text-muted-foreground">Documents in your library</p>
           </CardContent>
         </Card>
 
@@ -110,7 +197,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.processedToday}</div>
-            <p className="text-xs text-muted-foreground">+12% from yesterday</p>
+            <p className="text-xs text-muted-foreground">Documents processed today</p>
           </CardContent>
         </Card>
 
@@ -121,7 +208,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pendingReview}</div>
-            <p className="text-xs text-muted-foreground">-1 from yesterday</p>
+            <p className="text-xs text-muted-foreground">Awaiting processing</p>
           </CardContent>
         </Card>
 
@@ -132,7 +219,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalExports}</div>
-            <p className="text-xs text-muted-foreground">+4 from last week</p>
+            <p className="text-xs text-muted-foreground">Export jobs created</p>
           </CardContent>
         </Card>
       </div>
@@ -175,23 +262,33 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  {getStatusIcon(activity.status)}
-                  <div>
-                    <p className="font-medium">{activity.document}</p>
-                    <p className="text-sm text-gray-500 capitalize">{activity.type} • {activity.timestamp}</p>
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    {getStatusIcon(activity.status)}
+                    <div>
+                      <p className="font-medium">{activity.document}</p>
+                      <p className="text-sm text-gray-500 capitalize">{activity.type} • {activity.timestamp}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {getStatusBadge(activity.status)}
+                    <Link href={`/dashboard/documents/${activity.id}`}>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {getStatusBadge(activity.status)}
-                  <Button variant="ghost" size="sm">
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No recent activity</p>
+                <p className="text-sm">Upload your first document to get started</p>
               </div>
-            ))}
+            )}
           </div>
           <div className="mt-4 text-center">
             <Link href="/dashboard/documents">

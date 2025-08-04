@@ -2,7 +2,9 @@
 
 import type React from "react"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
+import { templatesAPI } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -15,6 +17,7 @@ import { Upload, FileText, X, CheckCircle, AlertCircle, Clock, FolderOpen, Arrow
 import Link from "next/link"
 
 export default function UploadDocumentsPage() {
+  const searchParams = useSearchParams()
   const [uploadMethod, setUploadMethod] = useState<"single" | "batch">("single")
   const [dragActive, setDragActive] = useState(false)
   const [files, setFiles] = useState<File[]>([])
@@ -31,6 +34,34 @@ export default function UploadDocumentsPage() {
     uploadedAt: string;
   }>>([])
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
+  const [templates, setTemplates] = useState<any[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(true)
+
+  // Load templates on component mount
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const data = await templatesAPI.list({ 
+          limit: 100, 
+          includePublic: true, 
+          status: 'active' 
+        })
+        setTemplates(data.templates || [])
+        
+        // Pre-select template from URL params
+        const templateParam = searchParams.get('template')
+        if (templateParam) {
+          setSelectedTemplate(templateParam)
+        }
+      } catch (error) {
+        console.error('Error fetching templates:', error)
+      } finally {
+        setLoadingTemplates(false)
+      }
+    }
+
+    fetchTemplates()
+  }, [searchParams])
 
   // Supported file types
   const supportedTypes = {
@@ -137,9 +168,11 @@ export default function UploadDocumentsPage() {
       const uploadPromises = files.map(async (file) => {
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('documentType', selectedDocumentType)
-        formData.append('template', selectedTemplate)
-        formData.append('description', description)
+        if (selectedDocumentType) formData.append('documentType', selectedDocumentType)
+        if (selectedTemplate && selectedTemplate !== 'auto') {
+          formData.append('templateId', selectedTemplate)
+        }
+        if (description) formData.append('description', description)
 
         // Call actual API endpoint
         const response = await fetch('/api/documents/upload', {
@@ -297,15 +330,22 @@ export default function UploadDocumentsPage() {
                       <Label htmlFor="template">Processing Template</Label>
                       <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Auto-detect" />
+                          <SelectValue placeholder={loadingTemplates ? "Loading..." : "Auto-detect"} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="auto">Auto-detect</SelectItem>
-                          <SelectItem value="invoice-template">Standard Invoice</SelectItem>
-                          <SelectItem value="bank-template">Bank Statement Parser</SelectItem>
-                          <SelectItem value="tax-template">Tax Form Extractor</SelectItem>
+                          <SelectItem value="auto">Auto-detect (Smart extraction)</SelectItem>
+                          {templates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.name} ({template.type})
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      {selectedTemplate && selectedTemplate !== 'auto' && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Using template: {templates.find(t => t.id === selectedTemplate)?.name}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -366,12 +406,15 @@ export default function UploadDocumentsPage() {
                       <Label htmlFor="batch-template">Default Template</Label>
                       <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Auto-detect for all" />
+                          <SelectValue placeholder={loadingTemplates ? "Loading..." : "Auto-detect for all"} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="auto">Auto-detect</SelectItem>
-                          <SelectItem value="invoice-template">Standard Invoice</SelectItem>
-                          <SelectItem value="mixed">Mixed Document Types</SelectItem>
+                          <SelectItem value="auto">Auto-detect (Smart extraction)</SelectItem>
+                          {templates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.name} ({template.type})
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

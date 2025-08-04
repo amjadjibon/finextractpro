@@ -5,9 +5,9 @@
  * configured via environment variables
  */
 
-import { openai } from '@ai-sdk/openai'
-import { google } from '@ai-sdk/google'
-import { groq } from '@ai-sdk/groq'
+import { createOpenAI } from '@ai-sdk/openai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createGroq } from '@ai-sdk/groq'
 
 export type AIProvider = 'openai' | 'google' | 'groq'
 
@@ -36,7 +36,7 @@ export function getAIConfig(): AIConfig {
       apiKey = process.env.OPENAI_API_KEY || ''
       break
     case 'google':
-      apiKey = process.env.GOOGLE_API_KEY || ''
+      apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
       break
     case 'groq':
       apiKey = process.env.GROQ_API_KEY || ''
@@ -46,7 +46,7 @@ export function getAIConfig(): AIConfig {
   }
   
   if (!apiKey) {
-    throw new Error(`Missing API key for provider: ${provider}. Please set the appropriate environment variable.`)
+    throw new Error(`Missing API key for provider: ${provider}. Please set ${provider === 'google' ? 'GOOGLE_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY' : `${provider.toUpperCase()}_API_KEY`} environment variable.`)
   }
   
   return { provider, model, apiKey }
@@ -58,11 +58,20 @@ export function getAIProvider() {
   
   switch (config.provider) {
     case 'openai':
-      return openai(config.model)
+      const openaiClient = createOpenAI({
+        apiKey: config.apiKey
+      })
+      return openaiClient(config.model)
     case 'google':
-      return google(config.model)
+      const googleClient = createGoogleGenerativeAI({
+        apiKey: config.apiKey
+      })
+      return googleClient(config.model)
     case 'groq':
-      return groq(config.model)
+      const groqClient = createGroq({
+        apiKey: config.apiKey
+      })
+      return groqClient(config.model)
     default:
       throw new Error(`Unsupported AI provider: ${config.provider}`)
   }
@@ -79,7 +88,7 @@ export const PROVIDER_CONFIGS = {
   },
   google: {
     name: 'Google Gemini',
-    models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.0-pro'] as const,
+    models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.0-pro', 'gemini-2.5-flash', 'gemini-2.5-pro'] as const,
     supportsVision: true,
     maxTokens: 8192,
     costPerToken: 0.0001 // Approximate
@@ -93,7 +102,7 @@ export const PROVIDER_CONFIGS = {
   }
 } as const
 
-export function validateAIConfig(): { isValid: boolean; error?: string } {
+export function validateAIConfig(): { isValid: boolean; error?: string; config?: AIConfig } {
   try {
     const config = getAIConfig()
     const providerConfig = PROVIDER_CONFIGS[config.provider]
@@ -103,15 +112,41 @@ export function validateAIConfig(): { isValid: boolean; error?: string } {
     if (!supportedModels.includes(config.model)) {
       return {
         isValid: false,
-        error: `Model ${config.model} is not supported by provider ${config.provider}. Supported models: ${supportedModels.join(', ')}`
+        error: `Model ${config.model} is not supported by provider ${config.provider}. Supported models: ${supportedModels.join(', ')}`,
+        config
       }
     }
     
-    return { isValid: true }
+    // Additional validation - check if API key looks valid
+    if (config.apiKey.length < 10) {
+      return {
+        isValid: false,
+        error: `API key for ${config.provider} appears to be too short or invalid`,
+        config
+      }
+    }
+    
+    return { isValid: true, config }
   } catch (error) {
+    const provider = process.env.AI_PROVIDER || 'openai'
+    let debugInfo = `Provider: ${provider}`
+    
+    // Add specific debugging for each provider
+    switch (provider) {
+      case 'google':
+        debugInfo += `, Google API Key set: ${!!(process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY)}`
+        break
+      case 'openai':
+        debugInfo += `, OpenAI API Key set: ${!!process.env.OPENAI_API_KEY}`
+        break
+      case 'groq':
+        debugInfo += `, Groq API Key set: ${!!process.env.GROQ_API_KEY}`
+        break
+    }
+    
     return {
       isValid: false,
-      error: error instanceof Error ? error.message : 'Unknown configuration error'
+      error: `${error instanceof Error ? error.message : 'Unknown configuration error'}. Debug: ${debugInfo}`
     }
   }
 }

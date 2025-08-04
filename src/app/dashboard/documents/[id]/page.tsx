@@ -59,70 +59,45 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
-// Document will be loaded from the API
-const mockDocument = false ? {
-  id: "1",
-  name: "Invoice_2024_001.pdf",
-  type: "invoice",
-  status: "completed",
-  uploadDate: "2024-01-15T10:30:00Z",
-  processedDate: "2024-01-15T10:32:00Z",
-  size: "2.4 MB",
-  confidence: 98.5,
-  pages: 1,
-  template: "Standard Invoice Template",
-  description: "Monthly service invoice from vendor",
-  tags: ["invoice", "monthly", "services"],
-  originalUrl: "/documents/invoice_2024_001.pdf",
-  extractedFields: [
-    { id: 1, name: "Invoice Number", value: "INV-2024-001", confidence: 99.2, type: "text" },
-    { id: 2, name: "Invoice Date", value: "2024-01-15", confidence: 98.8, type: "date" },
-    { id: 3, name: "Due Date", value: "2024-02-15", confidence: 97.5, type: "date" },
-    { id: 4, name: "Vendor Name", value: "Acme Services Ltd", confidence: 99.5, type: "text" },
-    { id: 5, name: "Vendor Address", value: "123 Business St, City, State 12345", confidence: 96.8, type: "address" },
-    { id: 6, name: "Subtotal", value: "1,250.00", confidence: 99.8, type: "currency" },
-    { id: 7, name: "Tax Amount", value: "125.00", confidence: 99.2, type: "currency" },
-    { id: 8, name: "Total Amount", value: "1,375.00", confidence: 99.9, type: "currency" },
-    { id: 9, name: "Payment Terms", value: "Net 30", confidence: 95.2, type: "text" },
-    { id: 10, name: "Description", value: "Monthly consulting services", confidence: 97.1, type: "text" },
-  ],
-  processingHistory: [
-    {
-      id: 1,
-      action: "Document Uploaded",
-      timestamp: "2024-01-15T10:30:00Z",
-      user: "John Doe",
-      details: "File uploaded via web interface"
-    },
-    {
-      id: 2,
-      action: "OCR Processing Started",
-      timestamp: "2024-01-15T10:30:15Z",
-      user: "System",
-      details: "Optical Character Recognition initiated"
-    },
-    {
-      id: 3,
-      action: "Template Applied",
-      timestamp: "2024-01-15T10:31:00Z",
-      user: "System",
-      details: "Standard Invoice Template applied"
-    },
-    {
-      id: 4,
-      action: "Data Extraction Completed",
-      timestamp: "2024-01-15T10:32:00Z",
-      user: "System",
-      details: "10 fields extracted with 98.5% average confidence"
-    },
-  ]
-} : null
+interface ExtractedField {
+  name: string
+  value: string
+  confidence: number
+  type: string
+}
+
+interface ProcessingHistoryItem {
+  id: number
+  action: string
+  timestamp: string
+  user: string
+  details: string
+}
+
+interface DocumentData {
+  id: string
+  name: string
+  type: string
+  status: string
+  uploadDate: string
+  processedDate?: string
+  size: string
+  confidence?: number
+  pages?: number
+  template?: string
+  description?: string
+  tags?: string[]
+  fileUrl?: string
+  extractedFields: ExtractedField[]
+  processingHistory: ProcessingHistoryItem[]
+  fieldsExtracted: number
+}
 
 export default function DocumentViewPage() {
   const params = useParams()
   const router = useRouter()
-  const [document, setDocument] = useState(mockDocument)
-  const [loading, setLoading] = useState(false)
+  const [document, setDocument] = useState<DocumentData | null>(null)
+  const [loading, setLoading] = useState(true)
   const [editingField, setEditingField] = useState<string | null>(null)
   const [editedValues, setEditedValues] = useState<{[key: string]: string}>({})
   const [zoom, setZoom] = useState(100)
@@ -194,38 +169,63 @@ export default function DocumentViewPage() {
     return new Date(dateString).toLocaleString()
   }
 
-  const handleFieldEdit = (fieldId: string, value: string) => {
-    setEditedValues(prev => ({ ...prev, [fieldId]: value }))
+  const handleFieldEdit = (fieldName: string, value: string) => {
+    setEditedValues(prev => ({ ...prev, [fieldName]: value }))
   }
 
-  const saveFieldEdit = (fieldId: string) => {
-    const editedValue = editedValues[fieldId]
-    if (editedValue !== undefined) {
+  const saveFieldEdit = async (fieldName: string) => {
+    const editedValue = editedValues[fieldName]
+    if (editedValue !== undefined && document) {
+      // Update local state immediately for better UX
       setDocument(prev => {
         if (!prev) return prev
         return {
           ...prev,
           extractedFields: prev.extractedFields.map(field =>
-          field.id.toString() === fieldId
-            ? { ...field, value: editedValue, confidence: 100 } // Reset confidence when manually edited
-            : field
-        )
+            field.name === fieldName
+              ? { ...field, value: editedValue, confidence: 100 } // Reset confidence when manually edited
+              : field
+          )
         }
       })
+      
+      // TODO: Send API request to save the edited field
+      try {
+        const response = await fetch(`/api/documents/${document.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            extractedFields: document.extractedFields.map(field =>
+              field.name === fieldName
+                ? { ...field, value: editedValue, confidence: 100 }
+                : field
+            )
+          })
+        })
+        
+        if (!response.ok) {
+          console.error('Failed to save field edit')
+        }
+      } catch (error) {
+        console.error('Error saving field edit:', error)
+      }
     }
+    
     setEditingField(null)
     setEditedValues(prev => {
       const newValues = { ...prev }
-      delete newValues[fieldId]
+      delete newValues[fieldName]
       return newValues
     })
   }
 
-  const cancelFieldEdit = (fieldId: string) => {
+  const cancelFieldEdit = (fieldName: string) => {
     setEditingField(null)
     setEditedValues(prev => {
       const newValues = { ...prev }
-      delete newValues[fieldId]
+      delete newValues[fieldName]
       return newValues
     })
   }
@@ -249,12 +249,39 @@ export default function DocumentViewPage() {
     }
   }
 
-  const handleReprocess = () => {
-    // Simulate reprocessing
-    setDocument(prev => prev ? { ...prev, status: "processing" } : prev)
-    setTimeout(() => {
-      setDocument(prev => prev ? { ...prev, status: "completed" } : prev)
-    }, 3000)
+  const handleReprocess = async () => {
+    if (!document) return
+    
+    try {
+      // Update UI immediately
+      setDocument(prev => prev ? { ...prev, status: "processing" } : prev)
+      
+      // TODO: Call reprocess API
+      const response = await fetch(`/api/documents/${document.id}/reprocess`, {
+        method: 'POST',
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to reprocess document')
+      }
+      
+      // Refresh document data
+      const updatedResponse = await fetch(`/api/documents/${document.id}`)
+      if (updatedResponse.ok) {
+        const updatedDocument = await updatedResponse.json()
+        setDocument(updatedDocument)
+      }
+    } catch (error) {
+      console.error('Error reprocessing document:', error)
+      // Revert status on error
+      setDocument(prev => prev ? { ...prev, status: "error" } : prev)
+    }
+  }
+
+  const handleDownload = () => {
+    if (document?.fileUrl) {
+      window.open(document.fileUrl, '_blank')
+    }
   }
 
   if (loading) {
@@ -330,7 +357,7 @@ export default function DocumentViewPage() {
           </div>
           
           <div className="flex space-x-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleDownload}>
               <Download className="w-4 h-4 mr-2" />
               Download
             </Button>
@@ -489,58 +516,66 @@ export default function DocumentViewPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {document.extractedFields.map((field) => (
-                        <TableRow key={field.id}>
-                          <TableCell className="font-medium">{field.name}</TableCell>
-                          <TableCell>
-                            {editingField === field.id.toString() ? (
-                              <Input
-                                value={editedValues[field.id.toString()] ?? field.value}
-                                onChange={(e) => handleFieldEdit(field.id.toString(), e.target.value)}
-                                className="max-w-xs"
-                                autoFocus
-                              />
-                            ) : (
-                              <span>{field.value}</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <span className={getConfidenceColor(field.confidence)}>
-                              {field.confidence.toFixed(1)}%
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {editingField === field.id.toString() ? (
-                              <div className="flex space-x-2">
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => saveFieldEdit(field.id.toString())}
-                                >
-                                  <Save className="w-4 h-4" />
-                                </Button>
+                      {document.extractedFields && document.extractedFields.length > 0 ? (
+                        document.extractedFields.map((field, index) => (
+                          <TableRow key={`${field.name}-${index}`}>
+                            <TableCell className="font-medium">{field.name}</TableCell>
+                            <TableCell>
+                              {editingField === field.name ? (
+                                <Input
+                                  value={editedValues[field.name] ?? field.value}
+                                  onChange={(e) => handleFieldEdit(field.name, e.target.value)}
+                                  className="max-w-xs"
+                                  autoFocus
+                                />
+                              ) : (
+                                <span>{field.value || 'N/A'}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span className={getConfidenceColor(field.confidence || 0)}>
+                                {field.confidence ? field.confidence.toFixed(1) : '0.0'}%
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {editingField === field.name ? (
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => saveFieldEdit(field.name)}
+                                  >
+                                    <Save className="w-4 h-4" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => cancelFieldEdit(field.name)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              ) : (
                                 <Button 
                                   size="sm" 
                                   variant="outline"
-                                  onClick={() => cancelFieldEdit(field.id.toString())}
+                                  onClick={() => {
+                                    setEditingField(field.name)
+                                    setEditedValues(prev => ({ ...prev, [field.name]: field.value }))
+                                  }}
                                 >
-                                  Cancel
+                                  <Edit className="w-4 h-4" />
                                 </Button>
-                              </div>
-                            ) : (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => {
-                                  setEditingField(field.id.toString())
-                                  setEditedValues(prev => ({ ...prev, [field.id.toString()]: field.value }))
-                                }}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            )}
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                            No extracted fields available
                           </TableCell>
                         </TableRow>
-                      ))}
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -593,20 +628,20 @@ export default function DocumentViewPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <Label className="text-gray-500">Type</Label>
-                  <p className="font-medium capitalize">{document.type}</p>
+                  <p className="font-medium capitalize">{document.type || 'Unknown'}</p>
                 </div>
                 <div>
                   <Label className="text-gray-500">Size</Label>
-                  <p className="font-medium">{document.size}</p>
+                  <p className="font-medium">{document.size || 'N/A'}</p>
                 </div>
                 <div>
                   <Label className="text-gray-500">Pages</Label>
-                  <p className="font-medium">{document.pages}</p>
+                  <p className="font-medium">{document.pages || 'N/A'}</p>
                 </div>
                 <div>
                   <Label className="text-gray-500">Confidence</Label>
-                  <p className={`font-medium ${getConfidenceColor(document.confidence)}`}>
-                    {document.confidence}%
+                  <p className={`font-medium ${getConfidenceColor(document.confidence || 0)}`}>
+                    {document.confidence ? `${document.confidence}%` : 'N/A'}
                   </p>
                 </div>
                 <div>
@@ -615,21 +650,23 @@ export default function DocumentViewPage() {
                 </div>
                 <div>
                   <Label className="text-gray-500">Processed</Label>
-                  <p className="font-medium">{formatDate(document.processedDate)}</p>
+                  <p className="font-medium">
+                    {document.processedDate ? formatDate(document.processedDate) : 'Not processed'}
+                  </p>
                 </div>
               </div>
               
               <div>
                 <Label className="text-gray-500">Template</Label>
-                <p className="font-medium">{document.template}</p>
+                <p className="font-medium">{document.template || 'Auto-detect'}</p>
               </div>
 
-              {document.tags.length > 0 && (
+              {document.tags && document.tags.length > 0 && (
                 <div>
                   <Label className="text-gray-500">Tags</Label>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {document.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
+                    {document.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
                         {tag}
                       </Badge>
                     ))}
@@ -645,7 +682,7 @@ export default function DocumentViewPage() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start" onClick={handleDownload}>
                 <Download className="w-4 h-4 mr-2" />
                 Download Original
               </Button>
@@ -673,24 +710,24 @@ export default function DocumentViewPage() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Fields Extracted:</span>
-                  <span className="font-medium">{document.extractedFields.length}</span>
+                  <span className="font-medium">{document.extractedFields?.length || 0}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">High Confidence:</span>
                   <span className="font-medium text-green-600">
-                    {document.extractedFields.filter(f => f.confidence >= 95).length}
+                    {document.extractedFields?.filter(f => (f.confidence || 0) >= 95).length || 0}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Medium Confidence:</span>
                   <span className="font-medium text-yellow-600">
-                    {document.extractedFields.filter(f => f.confidence >= 90 && f.confidence < 95).length}
+                    {document.extractedFields?.filter(f => (f.confidence || 0) >= 90 && (f.confidence || 0) < 95).length || 0}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Low Confidence:</span>
                   <span className="font-medium text-red-600">
-                    {document.extractedFields.filter(f => f.confidence < 90).length}
+                    {document.extractedFields?.filter(f => (f.confidence || 0) < 90).length || 0}
                   </span>
                 </div>
               </div>

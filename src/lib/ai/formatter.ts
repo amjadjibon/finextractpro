@@ -189,13 +189,21 @@ export class DataFormatter {
     // Look for tabular data in structured_data
     const structuredData = result.structured_data
     
-    // Check for arrays that might represent table rows
-    for (const [key, value] of Object.entries(structuredData)) {
-      if (Array.isArray(value) && value.length > 0) {
-        // Check if array contains objects (table rows)
-        if (typeof value[0] === 'object' && value[0] !== null) {
-          return value as Record<string, any>[]
+    // Try to parse additional_data for table information
+    if (structuredData.additional_data) {
+      try {
+        const additionalData = JSON.parse(structuredData.additional_data)
+        // Check for arrays that might represent table rows
+        for (const [key, value] of Object.entries(additionalData)) {
+          if (Array.isArray(value) && value.length > 0) {
+            // Check if array contains objects (table rows)
+            if (typeof value[0] === 'object' && value[0] !== null) {
+              return value as Record<string, any>[]
+            }
+          }
         }
+      } catch (e) {
+        // Ignore JSON parse errors
       }
     }
     

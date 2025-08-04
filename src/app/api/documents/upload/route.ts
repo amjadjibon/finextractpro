@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
         
         // Update document data with AI results
         documentData.status = 'completed'
-        documentData.confidence = parsingResult.confidence
+        documentData.confidence = Math.round(parsingResult.confidence)
         documentData.pages = parsingResult.metadata?.pages || 1
         documentData.fields_extracted = parsingResult.extracted_fields.length
         documentData.processed_date = new Date().toISOString()
@@ -230,9 +230,11 @@ export async function POST(request: NextRequest) {
       console.error('Database insert error:', dbError)
       
       // Clean up uploaded file if database insert fails
-      await supabase.storage
-        .from('documents')
-        .remove([uploadData.path])
+      try {
+        await documentsStorage.delete(uploadResult.path || filePath)
+      } catch (cleanupError) {
+        console.error('Failed to cleanup uploaded file:', cleanupError)
+      }
         
       return NextResponse.json({ 
         error: 'Failed to save document record' 

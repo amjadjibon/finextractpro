@@ -88,7 +88,7 @@ AI_MODEL=gpt-4o-mini  # Optional: model name (uses defaults if not specified)
 
 # AI API Keys (provide key for your chosen provider)
 OPENAI_API_KEY=your_openai_api_key
-GOOGLE_API_KEY=your_google_api_key
+GOOGLE_API_KEY=your_google_api_key  # or GOOGLE_GENERATIVE_AI_API_KEY
 GROQ_API_KEY=your_groq_api_key
 ```
 
