@@ -59,6 +59,204 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
+// Document Preview Component
+interface DocumentPreviewProps {
+  fileUrl: string
+  fileType: string
+  fileName: string
+  zoom: number
+  rotation: number
+}
+
+function DocumentPreview({ fileUrl, fileType, fileName, zoom, rotation }: DocumentPreviewProps) {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  
+  const isPDF = fileType === 'application/pdf'
+  const isImage = fileType.startsWith('image/')
+  const isText = fileType === 'text/plain'
+  const isWord = fileType.includes('word') || fileType.includes('document')
+  
+  const previewStyle = {
+    transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
+    transformOrigin: "center",
+    transition: "transform 0.2s ease"
+  }
+
+  if (isPDF) {
+    return (
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              <p className="text-sm text-gray-600">Loading PDF...</p>
+            </div>
+          </div>
+        )}
+        <div style={previewStyle} className="bg-white shadow-lg border rounded max-w-full max-h-full">
+          <iframe
+            src={`${fileUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+            width="800"
+            height="600"
+            className="border-0 rounded"
+            title={`Preview of ${fileName}`}
+            onLoad={() => setLoading(false)}
+            onError={() => {
+              setLoading(false)
+              setError(true)
+            }}
+          />
+        </div>
+        {error && (
+          <div className="mt-4 text-center">
+            <p className="text-red-600 mb-2">Unable to preview PDF</p>
+            <Button 
+              variant="outline" 
+              onClick={() => window.open(fileUrl, '_blank')}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Open PDF in New Tab
+            </Button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (isImage) {
+    return (
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              <p className="text-sm text-gray-600">Loading image...</p>
+            </div>
+          </div>
+        )}
+        <div style={previewStyle} className="bg-white shadow-lg border rounded p-4 max-w-full max-h-full">
+          <img
+            src={fileUrl}
+            alt={`Preview of ${fileName}`}
+            className="max-w-full max-h-[600px] object-contain"
+            onLoad={() => setLoading(false)}
+            onError={() => {
+              setLoading(false)
+              setError(true)
+            }}
+            style={{ display: error ? 'none' : 'block' }}
+          />
+          {error && (
+            <div className="text-center text-gray-500 p-8">
+              <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="mb-4">Unable to load image preview</p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.open(fileUrl, '_blank')}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Image
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (isText) {
+    return (
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              <p className="text-sm text-gray-600">Loading text file...</p>
+            </div>
+          </div>
+        )}
+        <div style={previewStyle} className="bg-white shadow-lg border rounded p-6 max-w-full max-h-[600px] overflow-auto">
+          <iframe
+            src={fileUrl}
+            width="700"
+            height="500"
+            className="border-0 w-full h-full"
+            title={`Preview of ${fileName}`}
+            onLoad={() => setLoading(false)}
+            onError={() => {
+              setLoading(false)
+              setError(true)
+            }}
+          />
+          {error && (
+            <div className="text-center text-gray-500 p-8">
+              <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="mb-4">Unable to preview text file</p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.open(fileUrl, '_blank')}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download File
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (isWord) {
+    return (
+      <div style={previewStyle} className="bg-white shadow-lg border rounded p-8 text-center">
+        <FileText className="w-16 h-16 mx-auto mb-4 text-blue-500" />
+        <p className="text-gray-700 mb-2 font-medium">Word Document</p>
+        <p className="text-gray-500 mb-4">Preview not available - Word documents require downloading</p>
+        <p className="text-sm text-gray-400 mb-4">{fileType}</p>
+        <div className="space-y-2">
+          <Button 
+            variant="default" 
+            className="w-full"
+            onClick={() => window.open(fileUrl, '_blank')}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Download & Open
+          </Button>
+          <p className="text-xs text-gray-400">File will open in your default application</p>
+        </div>
+      </div>
+    )
+  }
+
+  // For unsupported file types
+  return (
+    <div style={previewStyle} className="bg-white shadow-lg border rounded p-8 text-center">
+      <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+      <p className="text-gray-700 mb-2 font-medium">File Preview</p>
+      <p className="text-gray-500 mb-2">Preview not available for this file type</p>
+      <p className="text-sm text-gray-400 mb-4">{fileType}</p>
+      <div className="space-y-2">
+        <Button 
+          variant="outline" 
+          className="w-full"
+          onClick={() => window.open(fileUrl, '_blank')}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download File
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={() => window.open(fileUrl, '_blank')}
+        >
+          Open in New Tab
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 interface ExtractedField {
   name: string
   value: string
@@ -88,6 +286,7 @@ interface DocumentData {
   description?: string
   tags?: string[]
   fileUrl?: string
+  fileType?: string
   extractedFields: ExtractedField[]
   processingHistory: ProcessingHistoryItem[]
   fieldsExtracted: number
@@ -443,55 +642,20 @@ export default function DocumentViewPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="border rounded-lg p-4 bg-gray-50 min-h-96 flex items-center justify-center">
-                    <div 
-                      className="bg-white shadow-lg border rounded"
-                      style={{ 
-                        transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
-                        transformOrigin: "center",
-                        transition: "transform 0.2s ease"
-                      }}
-                    >
-                      {/* Simulated document preview */}
-                      <div className="w-96 h-[500px] p-6 text-sm">
-                        <div className="text-center mb-4">
-                          <h2 className="text-xl font-bold">INVOICE</h2>
-                          <p className="text-gray-600">INV-2024-001</p>
-                        </div>
-                        
-                        <div className="mb-4">
-                          <h3 className="font-semibold">From:</h3>
-                          <p>Acme Services Ltd</p>
-                          <p>123 Business St</p>
-                          <p>City, State 12345</p>
-                        </div>
-
-                        <div className="mb-4">
-                          <p><strong>Date:</strong> January 15, 2024</p>
-                          <p><strong>Due Date:</strong> February 15, 2024</p>
-                          <p><strong>Terms:</strong> Net 30</p>
-                        </div>
-
-                        <div className="border-t pt-4">
-                          <h3 className="font-semibold mb-2">Services:</h3>
-                          <p>Monthly consulting services</p>
-                        </div>
-
-                        <div className="border-t pt-4 mt-8">
-                          <div className="flex justify-between mb-1">
-                            <span>Subtotal:</span>
-                            <span>$1,250.00</span>
-                          </div>
-                          <div className="flex justify-between mb-1">
-                            <span>Tax:</span>
-                            <span>$125.00</span>
-                          </div>
-                          <div className="flex justify-between font-bold text-lg border-t pt-1">
-                            <span>Total:</span>
-                            <span>$1,375.00</span>
-                          </div>
-                        </div>
+                    {document.fileUrl ? (
+                      <DocumentPreview
+                        fileUrl={document.fileUrl}
+                        fileType={document.fileType}
+                        fileName={document.name}
+                        zoom={zoom}
+                        rotation={rotation}
+                      />
+                    ) : (
+                      <div className="text-center text-gray-500">
+                        <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                        <p>Document preview not available</p>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

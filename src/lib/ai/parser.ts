@@ -7,6 +7,7 @@
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { getAIProvider, getAIConfig, PROVIDER_CONFIGS } from './config'
+import { pdfParser } from '@/lib/pdf/parser'
 
 // Base schema for extracted fields
 const ExtractedFieldSchema = z.object({
@@ -54,7 +55,14 @@ const DocumentParsingSchema = z.object({
     provider: z.string().describe('AI provider used'),
     model: z.string().describe('AI model used'),
     parsing_mode: z.string().optional().describe('Parsing mode used (template-based, smart auto-detection, etc.)'),
-    template_used: z.string().optional().describe('Name of the template used for parsing')
+    template_used: z.string().optional().describe('Name of the template used for parsing'),
+    pdf_info: z.object({
+      title: z.string().optional(),
+      author: z.string().optional(),
+      creator: z.string().optional(),
+      pages: z.number().optional(),
+      text_length: z.number().optional()
+    }).optional().describe('PDF metadata if document is PDF')
   }).optional()
 })
 
@@ -343,7 +351,7 @@ export class DocumentParser {
     }
   }
 
-  // Enhanced parsing with file input (for image documents)
+  // Enhanced parsing with file input (for PDFs, images, and text documents)
   async parseDocumentWithFile(
     file: File,
     template?: DocumentTemplate | null
@@ -352,7 +360,13 @@ export class DocumentParser {
       const config = getAIConfig()
       const providerConfig = PROVIDER_CONFIGS[config.provider]
       
-      // Check if provider supports vision
+      // Handle PDF files with text extraction
+      if (this.isPDFFile(file)) {
+        console.log('📄 Processing PDF file with text extraction')
+        return await this.parsePDFDocument(file, template)
+      }
+      
+      // Check if provider supports vision for images
       if (this.isImageFile(file) && !providerConfig.supportsVision) {
         throw new Error(`Provider ${config.provider} does not support image processing. Please use OpenAI or Google.`)
       }
@@ -367,6 +381,61 @@ export class DocumentParser {
       
     } catch (error) {
       console.error('❌ File parsing failed:', error)
+      throw error
+    }
+  }
+  
+  // Parse PDF documents using text extraction
+  private async parsePDFDocument(
+    file: File,
+    template?: DocumentTemplate | null
+  ): Promise<DocumentParsingResult> {
+    this.startTime = Date.now()
+    
+    try {
+      console.log(`📄 Extracting text from PDF: ${file.name}`)
+      
+      // Extract text from PDF
+      const pdfResult = await pdfParser.parsePDFFromFile(file)
+      const cleanedText = pdfParser.cleanExtractedText(pdfResult.text)
+      
+      console.log(`📝 Extracted ${cleanedText.length} characters from ${pdfResult.numPages} pages`)
+      
+      if (!cleanedText || cleanedText.trim().length === 0) {
+        throw new Error('No text content could be extracted from the PDF')
+      }
+      
+      // Use regular text parsing with extracted content
+      const parsingResult = await this.parseDocument(cleanedText, template)
+      
+      // Enhance result with PDF metadata
+      const enhancedResult: DocumentParsingResult = {
+        ...parsingResult,
+        metadata: {
+          ...parsingResult.metadata,
+          pages: pdfResult.numPages,
+          parsing_mode: template?.id !== 'default' 
+            ? `template-based PDF text extraction (${template?.name})` 
+            : 'smart auto-detection PDF text extraction',
+          pdf_info: {
+            title: pdfResult.info.title,
+            author: pdfResult.info.author,
+            creator: pdfResult.info.creator,
+            pages: pdfResult.numPages,
+            text_length: cleanedText.length
+          }
+        }
+      }
+      
+      const processingTime = Date.now() - this.startTime
+      console.log(`✅ PDF processing completed in ${processingTime}ms`)
+      console.log(`📊 Extracted ${enhancedResult.extracted_fields.length} fields`)
+      console.log(`🎯 Overall confidence: ${enhancedResult.confidence}%`)
+      
+      return enhancedResult
+      
+    } catch (error) {
+      console.error('❌ PDF parsing failed:', error)
       throw error
     }
   }
@@ -512,6 +581,10 @@ Provide comprehensive extraction with confidence scores for each field. Extract 
   // Helper methods
   private isImageFile(file: File): boolean {
     return file.type.startsWith('image/')
+  }
+  
+  private isPDFFile(file: File): boolean {
+    return file.type === 'application/pdf'
   }
   
   private estimatePageCount(text: string): number {

@@ -292,3 +292,14 @@ AI_PROVIDER=groq
 AI_MODEL=llama-3.1-8b-instant
 GROQ_API_KEY=your_key
 ```
+
+## Known Issues and Workarounds
+
+### PDF Parsing Build Error
+The `pdf-parse` library includes test files that can cause build errors when webpack tries to bundle them. 
+
+**Issue**: `Error: ENOENT: no such file or directory, open './test/data/05-versions-space.pdf'`
+
+**Workaround**: The build process creates a temporary `test/data/` directory with the required files. This directory is gitignored and only exists during builds.
+
+**Future Solution**: Consider migrating to a different PDF parsing library like `pdfjs-dist` with proper Node.js configuration, or `pdf2pic` for simpler use cases.
