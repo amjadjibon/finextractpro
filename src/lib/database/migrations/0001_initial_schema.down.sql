@@ -64,6 +64,16 @@ DROP POLICY IF EXISTS "Users can delete own documents" ON storage.objects;
 -- WARNING: This permanently deletes all uploaded documents
 DELETE FROM storage.buckets WHERE id = 'documents';
 
+-- Drop storage policies for exports bucket
+DROP POLICY IF EXISTS "Users can upload own exports" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view own exports" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own exports" ON storage.objects;
+
+-- Drop storage bucket (this will also delete all files!)
+-- WARNING: This permanently deletes all uploaded exports
+DELETE FROM storage.buckets WHERE id = 'exports';
+
+
 -- =============================================
 -- PART 5: Clean up any remaining objects
 -- =============================================
@@ -126,6 +136,7 @@ WHERE routine_schema = 'public'
 
 -- List remaining storage buckets
 SELECT id, name FROM storage.buckets WHERE id = 'documents';
+SELECT id, name FROM storage.buckets WHERE id = 'exports';
 
 -- =============================================
 -- Rollback Complete
