@@ -90,8 +90,7 @@ export async function POST(
       format: format as 'json' | 'csv' | 'excel',
       documents: [documentForExport], // Single document
       filters: {
-        documentType: document.document_type,
-        status: 'completed'
+        documentType: document.document_type
       },
       includeFields: includeFields.length > 0 ? includeFields : undefined,
       settings: {
@@ -142,19 +141,29 @@ export async function POST(
 
     if (insertError) {
       console.error('Error creating export record:', insertError)
-      // Don't fail the request since the export was generated successfully
+      return NextResponse.json({ 
+        error: 'Failed to create export record',
+        details: insertError.message 
+      }, { status: 500 })
     }
 
     console.log(`✅ Single document export completed: ${exportResult.fileName}`)
 
     return NextResponse.json({
       success: true,
-      export: createdExport || exportJob,
-      file_url: exportResult.fileUrl,
-      file_name: exportResult.fileName,
-      file_size: exportResult.fileSize,
-      download_url: exportResult.fileUrl,
-      message: `Document "${document.name}" exported successfully as ${format.toUpperCase()}`
+      export: {
+        id: createdExport.id,
+        name: createdExport.name,
+        description: createdExport.description,
+        status: createdExport.status,
+        type: createdExport.type,
+        format: createdExport.format,
+        file_size: createdExport.file_size,
+        records_count: createdExport.records_count,
+        created_at: createdExport.created_at,
+        completed_at: createdExport.completed_at
+      },
+      message: `Document "${document.name}" exported successfully as ${format.toUpperCase()}. You can download it from the Exports page.`
     }, { status: 200 })
 
   } catch (error) {
@@ -199,7 +208,12 @@ export async function GET(
     }
 
     // Extract available fields for selection
-    const availableFields = document.extracted_fields?.map((field: any) => ({
+    const availableFields = document.extracted_fields?.map((field: {
+      name: string
+      type: string
+      confidence: number
+      value: string
+    }) => ({
       name: field.name,
       type: field.type,
       confidence: field.confidence,

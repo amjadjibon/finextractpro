@@ -1,0 +1,25 @@
+Bank Statement Example
+
+Your account summary
+Balance at 1 February: £40,000.00
+Total money in: £5,474.00
+Total money out: £1,395.17
+Balance at 1 March: £44,079.83
+
+Date Description Money out Money In Balance
+Balance brought forward 40,000.00
+1 February Card payment - High St Petrol Station 24.50 39,975.50
+3 February Direct debit - Green Mobile Phone Bill 20.00 39,955.50
+3 February Cash Withdrawal - YourBank, Anytown High Street, timed 17:30 31 Jan 30.00 39,925.50
+4 February YourJob BiWeekly Payment 2,575.00 42,500.50
+11 February Cash Withdrawal - RandomBank, Randomford, timed 9:52 14 Feb 300.00 42,200.50
+16 February Direct Deposit - YourBank, Anytown High Street, timed 17:30 31 Jan 50.00 42,750.50
+17 February Card payment - High St Petrol Station 40.00 42,710.50
+18 February Direct Debit - Home Insurance 78.34 42,632.16
+18 February YourJob BiWeekly Payment 2,575.00 45,207.16
+20 February Service fee 15.00 45,192.16
+25 February ATM Withdrawal 150.00 45,042.16
+28 February Interest Payment 25.00 45,067.16
+1 March Final Balance Adjustment 987.33 44,079.83
+
+Final Balance: £44,079.83

@@ -14,7 +14,7 @@ const ExtractedFieldSchema = z.object({
   name: z.string().describe('The name/label of the field'),
   value: z.string().describe('The extracted value as a string'),
   confidence: z.number().int().min(0).max(100).describe('Confidence score from 0-100 as integer'),
-  type: z.enum(['text', 'number', 'date', 'currency', 'address', 'email', 'phone']).describe('The data type of the field'),
+  type: z.enum(['text', 'number', 'date', 'currency', 'address', 'email', 'phone', 'list', 'table']).describe('The data type of the field'),
   position: z.object({
     page: z.number().optional().describe('Page number where found'),
     coordinates: z.object({
@@ -26,7 +26,29 @@ const ExtractedFieldSchema = z.object({
   }).optional()
 })
 
-// Schema for structured data - Google Gemini compatible
+// Schema for table/list data items - Gemini compatible
+const TableRowSchema = z.object({
+  id: z.string().optional().describe('Row identifier or sequence number'),
+  values: z.array(z.string()).describe('Array of column values in the same order as headers'),
+  confidence: z.number().int().min(0).max(100).describe('Confidence score for this row')
+})
+
+// Schema for structured table data - Gemini compatible
+const TableDataSchema = z.object({
+  name: z.string().describe('Name/title of the table or list'),
+  headers: z.array(z.string()).describe('Column headers or field names'),
+  rows: z.array(TableRowSchema).describe('Array of data rows with values matching header order'),
+  summary: z.object({
+    total_rows: z.number().describe('Total number of rows'),
+    total_amount: z.string().optional().describe('Sum of monetary values if applicable'),
+    date_range: z.object({
+      start: z.string().optional().describe('Earliest date found'),
+      end: z.string().optional().describe('Latest date found')
+    }).optional()
+  }).optional().describe('Summary statistics for the table')
+})
+
+// Schema for structured data - Enhanced with table support
 const StructuredDataSchema = z.object({
   document_id: z.string().optional().describe('Document reference number or ID'),
   document_title: z.string().optional().describe('Document title or name'),
@@ -39,8 +61,9 @@ const StructuredDataSchema = z.object({
   contact_info: z.string().optional().describe('Contact information found'),
   location: z.string().optional().describe('Address or location information'),
   status: z.string().optional().describe('Document status or category'),
-  additional_data: z.string().optional().describe('Other important information as JSON string')
-}).describe('Key-value pairs of the most important structured data')
+  additional_data: z.string().optional().describe('Other important information as JSON string'),
+  tables: z.array(TableDataSchema).optional().describe('Structured table/list data extracted from the document')
+}).describe('Key-value pairs of the most important structured data including tabular information')
 
 // Schema for the complete parsing response
 const DocumentParsingSchema = z.object({
@@ -67,6 +90,8 @@ const DocumentParsingSchema = z.object({
 })
 
 export type ExtractedField = z.infer<typeof ExtractedFieldSchema>
+export type TableRow = z.infer<typeof TableRowSchema>
+export type TableData = z.infer<typeof TableDataSchema>
 export type DocumentParsingResult = z.infer<typeof DocumentParsingSchema>
 
 // Template interface for structured extraction
@@ -104,7 +129,8 @@ const DEFAULT_TEMPLATE: DocumentTemplate = {
     { name: 'Contact Information', type: 'text', required: false, description: 'Phone, email, address, or other contact details' },
     { name: 'Key-Value Pairs', type: 'text', required: false, description: 'Important field-value relationships found in document' },
     { name: 'Named Entities', type: 'text', required: false, description: 'People, places, organizations, or specific identifiers' },
-    { name: 'Table Data', type: 'text', required: false, description: 'Structured tabular information if present' },
+    { name: 'Transaction List', type: 'table', required: true, description: 'Bank transactions with Date, Description, Type, Money Out, Money In, Balance columns - MANDATORY for bank statements' },
+    { name: 'Table Data', type: 'table', required: false, description: 'Any other structured tabular information (line items, schedules, etc.)' },
     { name: 'Status/Category', type: 'text', required: false, description: 'Document status, priority, or classification' },
     { name: 'Summary/Description', type: 'text', required: false, description: 'Brief overview or main content description' }
   ],
@@ -162,11 +188,27 @@ COMPREHENSIVE EXTRACTION INSTRUCTIONS:
    - Extract form fields, invoice line items, contract terms
    - Capture metadata like "Invoice Number: 12345", "Due Date: 2024-01-15"
 
-4. TABLE AND TABULAR DATA:
-   - Detect tables, lists, and structured data sections
-   - Extract table headers, rows, and columns
-   - Maintain data relationships and structure
-   - Handle complex tables with merged cells or nested data
+4. TABLE AND TABULAR DATA EXTRACTION:
+   - **CRITICAL**: Detect ALL tables, lists, and structured data sections
+   - **BANK STATEMENTS**: Look for transaction lists with columns like:
+     * Date (various formats: 1 February, 01/02, Feb 1, etc.)
+     * Description (transaction details, merchant names, payment types)
+     * Money Out/Debit (negative amounts, withdrawals, payments)
+     * Money In/Credit (positive amounts, deposits, income)
+     * Balance (running balance after each transaction)
+   - **TRANSACTION PATTERNS**: Identify patterns like:
+     * "Card payment - [merchant]"
+     * "Direct debit - [company]"
+     * "Cash withdrawal - [location]"
+     * "[Company] BiWeekly Payment"
+     * "Direct Deposit - [source]"
+   - Extract table headers and identify column types (date, amount, description, etc.)
+   - Extract EVERY row of data with proper column mapping
+   - For invoices: Item, Quantity, Price, Amount
+   - For receipts: Item, Quantity, Unit Price, Total
+   - Calculate totals and validate mathematical relationships
+   - Handle complex tables with merged cells, subtotals, and nested data
+   - Create structured JSON arrays for each table found
 
 5. OCR AND IMAGE PROCESSING:
    - Process scanned documents and handwritten text
@@ -205,7 +247,42 @@ STRUCTURED DATA OUTPUT FORMAT:
 - contact_info: Phone, email, address information
 - location: Physical address or location data
 - status: Document status, priority, or classification
-- additional_data: Any other important data as JSON string (tables, line items, etc.)
+- additional_data: Any other important data as JSON string
+- tables: Array of structured table/list data with the following format:
+  * name: Table title/description
+  * headers: Column names array
+  * rows: Array of data objects with column mappings
+  * summary: Statistics like total_rows, total_amount, date_range
+
+CRITICAL: For documents with tabular data (bank statements, invoices, receipts), 
+ALWAYS extract the complete table data in the 'tables' field. Each row must be 
+a complete record with all column values properly mapped.
+
+**BANK STATEMENT TRANSACTION EXTRACTION - MANDATORY**:
+When processing bank statements, you MUST extract ALL transaction data including:
+- Every transaction row from the statement
+- Proper column mapping: Date → Description → Money Out → Money In → Balance
+- Handle various date formats (1 February, Feb 1, 01/02, etc.)
+- Extract complete transaction descriptions
+- Preserve monetary values with proper formatting
+- Calculate and validate running balances
+- Create a comprehensive transactions table in the 'tables' array
+
+Example bank statement transaction table structure:
+{
+  "name": "Transaction History",
+  "headers": ["Date", "Description", "Money Out", "Money In", "Balance"],
+  "rows": [
+    {"values": ["1 February", "Card payment - High St Petrol Station", "24.50", "", "39,975.50"]},
+    {"values": ["3 February", "Direct debit - Green Mobile Phone Bill", "20.00", "", "39,955.50"]},
+    {"values": ["4 February", "YourJob BiWeekly Payment", "", "2,575.00", "42,530.50"]}
+  ],
+  "summary": {
+    "total_rows": 12,
+    "total_amount": "£4,079.83",
+    "date_range": {"start": "2024-02-01", "end": "2024-03-01"}
+  }
+}
 
 QUALITY ASSURANCE:
 - Cross-validate extracted data for consistency
@@ -409,14 +486,18 @@ export class DocumentParser {
       const parsingResult = await this.parseDocument(cleanedText, template)
       
       // Enhance result with PDF metadata
+      const processingTime = Date.now() - this.startTime
       const enhancedResult: DocumentParsingResult = {
         ...parsingResult,
         metadata: {
-          ...parsingResult.metadata,
           pages: pdfResult.numPages,
+          processing_time: processingTime,
+          provider: parsingResult.metadata?.provider || 'unknown',
+          model: parsingResult.metadata?.model || 'unknown',
           parsing_mode: template?.id !== 'default' 
             ? `template-based PDF text extraction (${template?.name})` 
             : 'smart auto-detection PDF text extraction',
+          template_used: template?.name || 'Smart Document Parser',
           pdf_info: {
             title: pdfResult.info.title,
             author: pdfResult.info.author,
@@ -427,7 +508,6 @@ export class DocumentParser {
         }
       }
       
-      const processingTime = Date.now() - this.startTime
       console.log(`✅ PDF processing completed in ${processingTime}ms`)
       console.log(`📊 Extracted ${enhancedResult.extracted_fields.length} fields`)
       console.log(`🎯 Overall confidence: ${enhancedResult.confidence}%`)
@@ -502,11 +582,21 @@ COMPREHENSIVE IMAGE EXTRACTION:
    - Extract labeled data pairs throughout the document
    - Capture invoice line items, contract terms, etc.
 
-5. TABLE AND STRUCTURED DATA:
-   - Detect tables, lists, and data grids
-   - Extract table headers, rows, and columns
-   - Maintain relationships between data elements
-   - Handle complex layouts with multiple sections
+5. TABLE AND STRUCTURED DATA EXTRACTION:
+   - **CRITICAL**: Detect ALL tables, lists, and data grids in the image
+   - **BANK STATEMENTS**: Identify transaction tables with columns like:
+     * Date (look for date patterns in various formats)
+     * Description (transaction details, merchant names)
+     * Money Out/Debit (withdrawal amounts)
+     * Money In/Credit (deposit amounts)  
+     * Balance (running balance)
+   - Extract table headers and identify column types
+   - Extract EVERY row of data with accurate column mapping
+   - For invoices: Item, Quantity, Price, Amount
+   - Calculate totals and validate mathematical relationships
+   - Handle complex visual layouts with multiple sections
+   - **MANDATORY**: Create complete structured JSON arrays for each table
+   - Process tables even if headers are not clearly visible
 
 6. VISUAL ELEMENTS:
    - Identify signatures, stamps, and official marks
