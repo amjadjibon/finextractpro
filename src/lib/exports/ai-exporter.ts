@@ -7,7 +7,7 @@
 import { generateObject, LanguageModel } from 'ai'
 import { z } from 'zod'
 import { getAIProvider } from '@/lib/ai/config'
-import { exportsStorage, storageUtils } from '@/lib/storage/s3-client'
+import { exportsStorage } from '@/lib/storage/s3-aws-client'
 
 // Export format schemas
 const CSVExportSchema = z.object({
@@ -158,8 +158,8 @@ export class AIExporter {
       const fileContent = await this.convertToFileContent(exportData, request.format)
       const fileBuffer = Buffer.from(fileContent)
 
-      // Upload to S3 storage
-      const filePath = storageUtils.generateUserFilePath(request.userId, fileName)
+      // Upload to S3 storage  
+      const filePath = `${request.userId}/${fileName}`
       
       const uploadResult = await exportsStorage.upload(filePath, fileBuffer, {
         contentType,

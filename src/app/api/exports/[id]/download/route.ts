@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { exportsStorage } from '@/lib/storage/s3-client'
+import { exportsStorage } from '@/lib/storage/s3-aws-client'
 
 // GET /api/exports/[id]/download - Download export file
 export async function GET(

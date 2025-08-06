@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { documentsStorage } from '@/lib/storage/s3-client'
+import { documentsStorage } from '@/lib/storage/s3-aws-client'
 
 export async function GET(
   request: NextRequest,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { documentsStorage, storageUtils } from '@/lib/storage/s3-client'
+import { documentsStorage } from '@/lib/storage/s3-aws-client'
 import { documentParser, DocumentParsingResult } from '@/lib/ai/parser'
 import { dataFormatter } from '@/lib/ai/formatter'
 import { validateAIConfig } from '@/lib/ai/config'
@@ -56,13 +56,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate unique file path using S3-compatible storage
-    const filePath = storageUtils.generateUserFilePath(user.id, file.name)
+    const filePath = `${user.id}/${file.name}`
     
     // Upload file using S3-compatible storage client
     const uploadResult = await documentsStorage.upload(filePath, file, {
       contentType: file.type,
       cacheControl: '3600',
-      upsert: false,
       metadata: {
         originalName: file.name,
         uploadedBy: user.id,
